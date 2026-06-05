@@ -41,6 +41,13 @@ add_executable(during_test during_test.cpp)
 target_link_libraries(during_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(during_test)
 
+add_executable(auto_logged_machine_test auto_logged_machine_test.cpp)
+target_link_libraries(
+    auto_logged_machine_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
+)
+gtest_discover_tests(auto_logged_machine_test)
+
 add_executable(validator_test validator_test.cpp)
 target_link_libraries(validator_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(validator_test)

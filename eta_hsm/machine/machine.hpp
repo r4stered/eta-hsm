@@ -20,6 +20,26 @@ namespace eta_hsm {
 
 namespace detail {
 
+// The default Machine observer: a no-op. Every notify is an empty inline
+// template, so a Machine<Table> with no logging observer compiles to exactly
+// what it did before the observer seam existed -- no member of substance, no
+// runtime cost (issue 0007). A real observer (the auto-logging layer's
+// LoggingObserver) supplies the same members with bodies.
+struct NullObserver {
+    template <class State>
+    void onEntry(State)
+    {}
+    template <class State>
+    void onExit(State)
+    {}
+    template <class State>
+    void onInit(State)
+    {}
+    template <class State, class Event>
+    void onTransition(State, State, Event)
+    {}
+};
+
 // A structural compile-time string, usable as a non-type template argument so a
 // hook prefix ("entry"/"exit") can be passed to run_hook.
 template <std::size_t N>
@@ -197,7 +217,12 @@ consteval auto transitions()
 
 }  // namespace detail
 
-template <auto Table>
+// `Observer` is an opt-in seam for watching the machine run: it is notified at
+// the same points the Exit/Action/Entry/init chain already touches, so a logging
+// layer (issue 0007) can render Transitions, Entries, Exits, and inits without
+// re-deriving the traversal. It defaults to NullObserver, which compiles away --
+// every existing `Machine<Table>` is unchanged.
+template <auto Table, class Observer = detail::NullObserver>
 class Machine {
 public:
     using Host = typename decltype(Table)::HostType;
@@ -217,6 +242,11 @@ public:
     // the same by kicking off a Top -> Top self-transition in its constructor.)
     Machine() { current_ = enter_initial_chain(); }
 
+    // Same, but with a caller-supplied Observer in place. The Observer must be
+    // installed before the initial Entry chain runs so it can witness the init
+    // (the auto-logging layer relies on this to emit construction-time lines).
+    explicit Machine(Observer observer) : observer_{std::move(observer)} { current_ = enter_initial_chain(); }
+
     // The Leaf State the machine currently rests in.
     State identify() const { return current_; }
 
@@ -233,6 +263,7 @@ public:
     void dispatch(Event event)
     {
         static constexpr auto trs = detail::transitions<Table>();
+        State const origin = current_;  // resting Leaf before this Dispatch, for the Transition line
         State handler = current_;
         for (;;)
         {
@@ -270,6 +301,9 @@ public:
                     return;
                 }
                 take_transition(source, target, action, local);
+                // The Transition line is leaf-to-leaf and fires last, after the
+                // Exit/Entry/init chain that take_transition ran.
+                observer_.onTransition(origin, current_, event);
                 return;
             }
             if (is_top(handler))
@@ -352,6 +386,7 @@ private:
         for (State s = current_; s != lca; s = parent_of(s))
         {
             detail::run_hook<"exit">(host_, s);
+            observer_.onExit(s);
         }
 
         if (action != nullptr)
@@ -370,7 +405,12 @@ private:
         while (depth-- > 0)
         {
             detail::run_hook<"entry">(host_, path[depth]);
+            observer_.onEntry(path[depth]);
         }
+        // The Target is initialized once it has been entered, before drilling into
+        // its Initial Substates -- this is the init seam v1 logged for the Target
+        // (it fires even when the Target stayed active and was not re-entered).
+        observer_.onInit(target);
 
         // Drill the Target into its Initial Substates until a Leaf, firing each
         // State's Entry hook on the way down. This is where a Composite Target
@@ -385,6 +425,8 @@ private:
             }
             leaf = Table.states[i].initial;
             detail::run_hook<"entry">(host_, leaf);
+            observer_.onEntry(leaf);
+            observer_.onInit(leaf);
         }
         current_ = leaf;
     }
@@ -395,6 +437,8 @@ private:
     {
         State s = detail::top_state<Table, State>();
         detail::run_hook<"entry">(host_, s);
+        observer_.onEntry(s);
+        observer_.onInit(s);
         for (;;)
         {
             std::size_t const i = detail::state_index<Table>(s);
@@ -404,11 +448,14 @@ private:
             }
             s = Table.states[i].initial;
             detail::run_hook<"entry">(host_, s);
+            observer_.onEntry(s);
+            observer_.onInit(s);
         }
     }
 
     Host host_{};
     State current_{};
+    Observer observer_{};
 };
 
 }  // namespace eta_hsm
