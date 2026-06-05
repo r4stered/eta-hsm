@@ -7,3 +7,5 @@ bazel-testlogs
 bazel-*
 docs/
 CONTEXT.md
+CLAUDE.md
+tools/.lintenv/

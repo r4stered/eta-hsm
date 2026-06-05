@@ -10,8 +10,7 @@ A C++ library for defining and running **hierarchical state machines** (HSMs).
 ## Toolchain
 
 The single supported toolchain is **GCC 16+** at `-std=c++26 -freflection`
-(the first GCC line shipping P2996 reflection). See
-[ADR-0001](docs/adr/0001-cpp26-single-baseline.md).
+(the first GCC line shipping P2996 reflection).
 
 A Docker image pins this toolchain for local builds:
 
@@ -82,6 +81,65 @@ systems, and
 [`enum_reflection_test.cpp`](eta_hsm/tests/enum_reflection_test.cpp)
 covers the public enum reflection utility (names, counts, values, sentinels,
 non-`int` underlying types, and compile-time use).
+
+## Linting & formatting
+
+CI runs three lint gates — `python_linting`, `cpp_linting`, `cmake_format`
+(`.github/workflows/linux.yml`); buildifier runs as a local pre-commit hook.
+Reproduce them with the **same tools the pipeline pins** — these are
+formatters/linters, not the compiler, so they run on the host, *not* in the
+toolchain image.
+
+### Run all three gates
+
+```bash
+./tools/lint.sh
+```
+
+This runs `cmake_format`, `cpp_linting`, and `python_linting` with the exact
+versions CI pins. On the first run it builds a cached, git-ignored venv
+(`tools/.lintenv`) and reuses it afterward, so repeat runs do no install work; it
+rebuilds only when the pins in the script change. A non-zero exit (with a diff)
+means that gate would fail CI.
+
+This does not cover the Bazel `buildifier` hook (pre-commit only, not a CI gate);
+run `pre-commit run --all-files` if you've touched `BUILD`/`*.bazel` files.
+
+### Individual gates
+
+**CMake + Bazel formatting** — via pre-commit, which pins the exact versions CI
+uses (`gersemi==0.27.7`, `buildifier 7.3.1.2`):
+
+```bash
+pip install pre-commit
+pre-commit run --all-files          # gersemi (cmake_format job) + buildifier
+```
+
+Or run gersemi directly, exactly as the `cmake_format` job does:
+
+```bash
+gersemi --check eta_hsm tests/consumer
+```
+
+**C++ formatting** (`cpp_linting` job) — clang-format **21** (older versions
+mangle the C++26 reflection `^^` syntax):
+
+```bash
+# macOS: brew install clang-format   (or: pip install 'clang-format==21.*')
+clang-format --version              # must report 21.x
+find eta_hsm \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
+  | xargs -0 clang-format --dry-run --Werror
+```
+
+**Python** (`python_linting` job):
+
+```bash
+pip install flake8 pep8-naming
+flake8 python --count --max-complexity=25 --max-line-length=127 --statistics
+```
+
+To **auto-fix** rather than check: `pre-commit run --all-files` rewrites the
+CMake/Bazel files in place, and `clang-format -i <files>` rewrites C++.
 
 ## Using v1
 

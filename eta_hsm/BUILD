@@ -9,6 +9,7 @@ cc_library(
         "reflect/*.hpp",
         "machine/*.hpp",
         "examples/**/*.hpp",
+        "probe/*.hpp",
     ]),
     visibility = ["//visibility:public"],
 )

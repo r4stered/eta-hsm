@@ -1,0 +1,45 @@
+#!/bin/bash
+# Run the three CI lint gates locally with the exact versions the pipeline pins
+# (see .github/workflows/linux.yml). These are formatters/linters, not the
+# compiler, so they run on the host — not in the GCC-16 toolchain image.
+#
+# The pinned tools are cached in a git-ignored venv (tools/.lintenv) created on
+# the first run and reused after, so repeat runs do no install work. The venv is
+# rebuilt automatically only when the pinned versions below change.
+#
+#   ./tools/lint.sh        # run all three gates; non-zero exit == would fail CI
+set -euo pipefail
+
+# Keep the venv fully isolated: a sourced ROS/conda env leaks site-packages in via
+# PYTHONPATH and lets the wrong deps shadow the pinned linters.
+unset PYTHONPATH
+
+readonly ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+readonly VENV="${ROOT}/tools/.lintenv"
+readonly STAMP="${VENV}/.pins"
+readonly PINS="gersemi==0.27.7 clang-format==21.* flake8 pep8-naming"
+
+if [[ ! -f "${STAMP}" || "$(cat "${STAMP}" 2>/dev/null)" != "${PINS}" ]]; then
+  echo "==> Setting up lint venv (one-time; pins changed or first run)…"
+  rm -rf "${VENV}"
+  python3 -m venv "${VENV}"
+  "${VENV}/bin/pip" install -q --upgrade pip
+  # shellcheck disable=SC2086
+  "${VENV}/bin/pip" install -q ${PINS}
+  echo "${PINS}" >"${STAMP}"
+fi
+
+readonly BIN="${VENV}/bin"
+cd "${ROOT}"
+
+echo "==> cmake_format  (gersemi)"
+"${BIN}/gersemi" --check eta_hsm tests/consumer
+
+echo "==> cpp_linting   (clang-format 21)"
+find eta_hsm \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
+  | xargs -0 "${BIN}/clang-format" --dry-run --Werror
+
+echo "==> python_linting (flake8)"
+"${BIN}/flake8" python --count --max-complexity=25 --max-line-length=127 --statistics
+
+echo "==> all lint gates passed"

@@ -45,6 +45,13 @@ add_executable(validator_test validator_test.cpp)
 target_link_libraries(validator_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(validator_test)
 
+add_executable(scaling_probe_test scaling_probe_test.cpp)
+target_link_libraries(
+    scaling_probe_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
+)
+gtest_discover_tests(scaling_probe_test)
+
 # ----------------------------------------------------------------------------
 # Build-failure harness for the compile-time validator (issue 0006). Each case
 # compiles a deliberately ill-formed machine (validator_negcompile.cpp, one CASE
