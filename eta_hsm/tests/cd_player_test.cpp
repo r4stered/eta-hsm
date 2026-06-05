@@ -141,5 +141,62 @@ TEST(CdPlayer, MissingHookIsSilentlySkipped)
     EXPECT_EQ(m.host().log, "-Playing;stop_and_open;");
 }
 
+// A Guarded Transition whose Guard returns false is not taken: the Event keeps
+// deferring up the parent chain. Hammer on Stopped is guarded by drawer_jammed
+// (false by default), so it falls through to Top, which handles Hammer -> Playing.
+TEST(CdPlayer, GuardFalseDefersToParent)
+{
+    Machine<player> m;
+    ASSERT_EQ(m.identify(), State::Stopped);
+    ASSERT_FALSE(m.host().drawer_stuck);  // guard is false
+    m.dispatch(Event::Hammer);
+    EXPECT_EQ(m.identify(), State::Playing);  // taken by Top, not by Stopped's guarded row
+}
+
+// A Guarded Transition whose Guard returns true is taken, in preference to the
+// parent's handler for the same Event. With drawer_stuck set, Hammer on Stopped
+// runs open_drawer and moves to Open instead of deferring to Top.
+TEST(CdPlayer, GuardTrueTakesTheTransition)
+{
+    Machine<player> m;
+    m.host().drawer_stuck = true;  // guard is true
+    m.host().log.clear();
+    m.dispatch(Event::Hammer);
+    EXPECT_EQ(m.identify(), State::Open);
+    EXPECT_EQ(m.host().log, "-Stopped;open_drawer;");  // Open has no entry hook
+}
+
+// An Internal Transition runs its Action without changing the current State and
+// without firing any Exit or Entry. VolumeUp while Playing bumps the volume and
+// leaves the machine resting in Playing, no -Playing;/+Playing; in between.
+TEST(CdPlayer, InternalTransitionRunsActionWithoutStateChange)
+{
+    Machine<player> m;
+    m.dispatch(Event::Play);  // -> Playing
+    m.host().log.clear();
+    int const before = m.host().volume;
+
+    m.dispatch(Event::VolumeUp);
+
+    EXPECT_EQ(m.identify(), State::Playing);       // unchanged
+    EXPECT_EQ(m.host().volume, before + 1);        // Action ran
+    EXPECT_EQ(m.host().log, "turn_up;");           // Action only -- no Exit/Entry
+}
+
+// A Self-Transition re-enters the same State: unlike an Internal Transition it
+// fires the State's Exit and Entry around the Action. Next while Playing leaves
+// the machine in Playing, having run -Playing;next_track;+Playing;.
+TEST(CdPlayer, SelfTransitionReentersSameState)
+{
+    Machine<player> m;
+    m.dispatch(Event::Play);  // -> Playing
+    m.host().log.clear();
+
+    m.dispatch(Event::Next);
+
+    EXPECT_EQ(m.identify(), State::Playing);  // back in the same State
+    EXPECT_EQ(m.host().log, "-Playing;next_track;+Playing;");
+}
+
 }  // namespace
 }  // namespace eta_hsm::examples::cd_player

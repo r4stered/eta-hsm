@@ -4,10 +4,11 @@
 // value produced by a fluent builder (ADR-0002). The table is the single source
 // of truth that the generated Dispatch (machine.hpp) reads at compile time.
 //
-// This slice (issue 0002) supports FLAT machines only: a single Top State with
-// Leaf children one level deep, transitions of the form (Source, Event, Target)
-// with an optional Action, and one level of parent deferral (Leaf -> Top). No
-// Guards, no deeper hierarchy, no Local semantics yet.
+// This slice supports FLAT machines only: a single Top State with Leaf children
+// one level deep, and one level of parent deferral (Leaf -> Top). Transitions are
+// (Source, Event, Target) with an optional Action and an optional Guard (issue
+// 0003); .internal declares an Internal Transition (Action only, no State change).
+// No deeper hierarchy and no Local semantics yet.
 
 #include <array>
 #include <cstddef>
@@ -31,13 +32,17 @@ struct StateRow {
 };
 
 // One Transition: on `event` while in (or deferring through) `source`, move to
-// `target`, running `action` on the Host between Exit and Entry if non-null.
+// `target`, running `action` on the Host between Exit and Entry if non-null. A
+// non-null `guard` is consulted first: the Transition is taken only when the
+// Guard returns true, otherwise the Event keeps deferring up the parent chain.
 template <class StateEnum, class EventEnum, class Host>
 struct TransitionRow {
     StateEnum source{};
     EventEnum event{};
     StateEnum target{};
     void (Host::*action)() = nullptr;
+    bool (Host::*guard)() const = nullptr;
+    bool internal{false};  // Internal Transition: run `action` only, no State change, no Exit/Entry
 };
 
 // The fluent builder and the table value are the same type: every modifier
@@ -80,13 +85,27 @@ struct Hsm {
     }
 
     // Declare a Transition (Source, Event, Target), optionally running `action`
-    // on the Host between Exit and Entry.
+    // on the Host between Exit and Entry and optionally conditioned by `guard`.
+    // The Transition is taken only when `guard` is null or returns true.
     constexpr Hsm on(StateEnum source, EventEnum event, StateEnum target,
-                     void (Host::*action)() = nullptr) const
+                     void (Host::*action)() = nullptr,
+                     bool (Host::*guard)() const = nullptr) const
     {
         Hsm next = *this;
         next.transitions[next.transitionCount++] =
-            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action};
+            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false};
+        return next;
+    }
+
+    // Declare an Internal Transition: on `event` while in `source`, run `action`
+    // on the Host -- no State change, no Exit/Entry. Optionally conditioned by
+    // `guard`. The target slot is unused, so it is set to `source`.
+    constexpr Hsm internal(StateEnum source, EventEnum event, void (Host::*action)(),
+                           bool (Host::*guard)() const = nullptr) const
+    {
+        Hsm next = *this;
+        next.transitions[next.transitionCount++] =
+            TransitionRow<StateEnum, EventEnum, Host>{source, event, source, action, guard, true};
         return next;
     }
 

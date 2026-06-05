@@ -137,9 +137,11 @@ public:
     // Deliver one Event. Dispatch is generated at compile time: a `template for`
     // over the table's Transitions expands to one comparison per Transition, so
     // there is no virtual indirection and no heap allocation on the event path.
-    // An Event the current Leaf does not handle defers up the parent chain to
-    // Top; the first level with a matching Transition wins. A Composite Target is
-    // forwarded to its Initial Substate so the machine rests in a Leaf.
+    // An Event the current Leaf does not handle -- or handles only with a Guard
+    // that is currently false -- defers up the parent chain to Top; the first
+    // matching Transition whose Guard passes wins. A matched Internal Transition
+    // runs its Action and returns with no State change; otherwise a Composite
+    // Target is forwarded to its Initial Substate so the machine rests in a Leaf.
     void dispatch(Event event)
     {
         static constexpr auto trs = detail::transitions<Table>();
@@ -148,14 +150,28 @@ public:
             bool found = false;
             State target{};
             void (Host::*action)() = nullptr;
+            bool internal = false;
+            // First matching Transition whose Guard passes wins. A guarded row
+            // whose Guard is false is skipped, so the Event keeps deferring -- to
+            // a later same-source fallback row, or up the parent chain.
             template for (constexpr auto tr : trs) {
-                if (tr.source == handler && tr.event == event) {
+                if (!found && tr.source == handler && tr.event == event &&
+                    (tr.guard == nullptr || (host_.*tr.guard)())) {
                     target = tr.target;
                     action = tr.action;
+                    internal = tr.internal;
                     found = true;
                 }
             }
             if (found) {
+                if (internal) {
+                    // Internal Transition: run the Action only. No Exit/Entry, no
+                    // State change -- the machine rests where it already was.
+                    if (action != nullptr) {
+                        (host_.*action)();
+                    }
+                    return;
+                }
                 State const dest = detail::resting_leaf<Table>(target);
                 detail::run_hook<"exit">(host_, current_);  // Exit the Leaf being left
                 if (action != nullptr) {
