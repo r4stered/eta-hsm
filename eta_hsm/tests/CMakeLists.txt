@@ -37,3 +37,11 @@ target_link_libraries(cd_player_test
         GTest::gtest_main
 )
 gtest_discover_tests(cd_player_test)
+
+add_executable(nested_test nested_test.cpp)
+target_link_libraries(nested_test
+    PRIVATE
+        EtaHsm::eta_hsm
+        GTest::gtest_main
+)
+gtest_discover_tests(nested_test)

@@ -74,21 +74,6 @@ constexpr std::size_t state_index(StateEnum s)
     return Table.stateCount;
 }
 
-// Follow Initial Substates down from `s` until reaching a Leaf the machine can
-// rest in. For a flat machine this resolves Top -> its Initial Substate.
-template <auto Table, class StateEnum>
-constexpr StateEnum resting_leaf(StateEnum s)
-{
-    StateEnum cur = s;
-    for (;;) {
-        std::size_t const i = state_index<Table>(cur);
-        if (i == Table.stateCount || !Table.states[i].hasInitial) {
-            return cur;
-        }
-        cur = Table.states[i].initial;
-    }
-}
-
 // The single Top State of the table.
 template <auto Table, class StateEnum>
 constexpr StateEnum top_state()
@@ -99,6 +84,67 @@ constexpr StateEnum top_state()
         }
     }
     return StateEnum{};
+}
+
+// True if `a` is `b` itself or one of b's ancestors (walking up to Top). The
+// basis for least-common-ancestor: a State that is an ancestor-or-self of both
+// Source and Target spans the chain a Transition runs.
+template <auto Table, class StateEnum>
+constexpr bool is_ancestor_or_self(StateEnum a, StateEnum b)
+{
+    StateEnum cur = b;
+    for (;;) {
+        if (cur == a) {
+            return true;
+        }
+        std::size_t const i = state_index<Table>(cur);
+        if (i == Table.stateCount || Table.states[i].isTop) {
+            return false;  // reached the root (or an unknown State) without matching
+        }
+        cur = Table.states[i].parent;
+    }
+}
+
+// The least-common-ancestor for an External Transition: the nearest strict
+// ancestor of `source` that is also an ancestor-or-self of `target`. This is the
+// State the chain does NOT cross -- everything below it on the Source side is
+// Exited and everything below it on the Target side is Entered. For a self- or
+// parent/child Transition the result is the parent (so the shared State is Exited
+// and re-entered); the walk clamps at Top, so the root is never Exited.
+template <auto Table, class StateEnum>
+constexpr StateEnum lca_external(StateEnum source, StateEnum target)
+{
+    std::size_t const i = state_index<Table>(source);
+    if (i == Table.stateCount || Table.states[i].isTop) {
+        return top_state<Table, StateEnum>();
+    }
+    StateEnum cur = Table.states[i].parent;  // first strict ancestor of source
+    for (;;) {
+        if (is_ancestor_or_self<Table>(cur, target)) {
+            return cur;
+        }
+        std::size_t const j = state_index<Table>(cur);
+        if (j == Table.stateCount || Table.states[j].isTop) {
+            return top_state<Table, StateEnum>();
+        }
+        cur = Table.states[j].parent;
+    }
+}
+
+// The least-common-ancestor for a Local Transition. When Source and Target are
+// in a parent/child relationship the shared State is the ancestor itself, so it
+// is neither Exited nor re-entered; for unrelated States this is identical to the
+// External result.
+template <auto Table, class StateEnum>
+constexpr StateEnum lca_local(StateEnum source, StateEnum target)
+{
+    if (is_ancestor_or_self<Table>(source, target)) {
+        return source;  // Source contains Target (or Source == Target): keep Source
+    }
+    if (is_ancestor_or_self<Table>(target, source)) {
+        return target;  // Target contains Source: keep Target
+    }
+    return lca_external<Table>(source, target);
 }
 
 // The populated prefix of the table's Transitions, as a fixed-size value the
@@ -138,28 +184,34 @@ public:
     // over the table's Transitions expands to one comparison per Transition, so
     // there is no virtual indirection and no heap allocation on the event path.
     // An Event the current Leaf does not handle -- or handles only with a Guard
-    // that is currently false -- defers up the parent chain to Top; the first
-    // matching Transition whose Guard passes wins. A matched Internal Transition
-    // runs its Action and returns with no State change; otherwise a Composite
-    // Target is forwarded to its Initial Substate so the machine rests in a Leaf.
+    // that is currently false -- defers up the parent chain to the nearest
+    // ancestor that handles it; the first matching Transition whose Guard passes
+    // wins. A matched Internal Transition runs its Action and returns with no
+    // State change; otherwise take_transition runs the ordered Exit/Action/Entry
+    // chain through the least-common-ancestor and drills the Target into its
+    // Initial Substate so the machine comes to rest in a Leaf.
     void dispatch(Event event)
     {
         static constexpr auto trs = detail::transitions<Table>();
         State handler = current_;
         for (;;) {
             bool found = false;
+            State source{};
             State target{};
             void (Host::*action)() = nullptr;
             bool internal = false;
+            bool local = false;
             // First matching Transition whose Guard passes wins. A guarded row
             // whose Guard is false is skipped, so the Event keeps deferring -- to
             // a later same-source fallback row, or up the parent chain.
             template for (constexpr auto tr : trs) {
                 if (!found && tr.source == handler && tr.event == event &&
                     (tr.guard == nullptr || (host_.*tr.guard)())) {
+                    source = tr.source;
                     target = tr.target;
                     action = tr.action;
                     internal = tr.internal;
+                    local = tr.local;
                     found = true;
                 }
             }
@@ -172,13 +224,7 @@ public:
                     }
                     return;
                 }
-                State const dest = detail::resting_leaf<Table>(target);
-                detail::run_hook<"exit">(host_, current_);  // Exit the Leaf being left
-                if (action != nullptr) {
-                    (host_.*action)();  // Action runs between Exit and Entry
-                }
-                current_ = dest;
-                detail::run_hook<"entry">(host_, current_);  // Enter the destination Leaf
+                take_transition(source, target, action, local);
                 return;
             }
             if (is_top(handler)) {
@@ -220,6 +266,54 @@ private:
     {
         std::size_t const i = detail::state_index<Table>(s);
         return i != Table.stateCount && Table.states[i].isTop;
+    }
+
+    // Run a non-Internal Transition end to end. `source` is the State whose row
+    // matched (the current Leaf or an ancestor it deferred to) and `target` the
+    // row's Target. The least-common-ancestor bounds the chain: Exit from the
+    // current Leaf up to the LCA (exclusive, bottom-up), then the Action, then
+    // Entry from the LCA down to the Target (exclusive of LCA, top-down), then
+    // drill the Target into its Initial Substates so the machine rests in a Leaf.
+    // External (the default) Exits and re-enters a shared parent/child State;
+    // Local does not -- the only difference is which State the LCA resolves to.
+    void take_transition(State source, State target, void (Host::*action)(), bool local)
+    {
+        State const lca = local ? detail::lca_local<Table>(source, target)
+                                : detail::lca_external<Table>(source, target);
+
+        // Exit the active States from the current Leaf up to the LCA, bottom-up.
+        for (State s = current_; s != lca; s = parent_of(s)) {
+            detail::run_hook<"exit">(host_, s);
+        }
+
+        if (action != nullptr) {
+            (host_.*action)();  // Action runs between Exit and Entry
+        }
+
+        // Entry from the LCA down to the Target: collect the path bottom-up, then
+        // fire each Entry hook top-down (the order States are actually entered).
+        State path[kMaxStates];
+        std::size_t depth = 0;
+        for (State s = target; s != lca; s = parent_of(s)) {
+            path[depth++] = s;
+        }
+        while (depth-- > 0) {
+            detail::run_hook<"entry">(host_, path[depth]);
+        }
+
+        // Drill the Target into its Initial Substates until a Leaf, firing each
+        // State's Entry hook on the way down. This is where a Composite Target
+        // settles in the Leaf the machine comes to rest in.
+        State leaf = target;
+        for (;;) {
+            std::size_t const i = detail::state_index<Table>(leaf);
+            if (i == Table.stateCount || !Table.states[i].hasInitial) {
+                break;
+            }
+            leaf = Table.states[i].initial;
+            detail::run_hook<"entry">(host_, leaf);
+        }
+        current_ = leaf;
     }
 
     // Walk from Top down the Initial Substate chain, running each State's Entry

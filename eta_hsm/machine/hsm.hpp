@@ -4,11 +4,14 @@
 // value produced by a fluent builder (ADR-0002). The table is the single source
 // of truth that the generated Dispatch (machine.hpp) reads at compile time.
 //
-// This slice supports FLAT machines only: a single Top State with Leaf children
-// one level deep, and one level of parent deferral (Leaf -> Top). Transitions are
-// (Source, Event, Target) with an optional Action and an optional Guard (issue
-// 0003); .internal declares an Internal Transition (Action only, no State change).
-// No deeper hierarchy and no Local semantics yet.
+// This slice supports full HIERARCHY (issue 0004): composite States nested to
+// any depth, cross-level Transitions that run the ordered Exit/Entry chain
+// through the least-common-ancestor, recursive Initial-Substate forwarding, and
+// parent deferral up the whole tree. Transitions are (Source, Event, Target)
+// with an optional Action and an optional Guard (issue 0003); .internal declares
+// an Internal Transition (Action only, no State change); .local declares a Local
+// Transition (it does not Exit/re-enter the shared ancestor in parent/child
+// cases). .on declares an External Transition, the default.
 
 #include <array>
 #include <cstddef>
@@ -43,6 +46,7 @@ struct TransitionRow {
     void (Host::*action)() = nullptr;
     bool (Host::*guard)() const = nullptr;
     bool internal{false};  // Internal Transition: run `action` only, no State change, no Exit/Entry
+    bool local{false};     // Local Transition: skip Exit/re-entry of the shared ancestor (parent/child cases)
 };
 
 // The fluent builder and the table value are the same type: every modifier
@@ -93,7 +97,21 @@ struct Hsm {
     {
         Hsm next = *this;
         next.transitions[next.transitionCount++] =
-            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false};
+            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false, false};
+        return next;
+    }
+
+    // Declare a Local Transition (Source, Event, Target). Identical to .on except
+    // that when Source and Target are in a parent/child relationship the shared
+    // ancestor is not Exited and re-entered. For unrelated States it behaves like
+    // an External Transition. External (.on) is the default.
+    constexpr Hsm local(StateEnum source, EventEnum event, StateEnum target,
+                        void (Host::*action)() = nullptr,
+                        bool (Host::*guard)() const = nullptr) const
+    {
+        Hsm next = *this;
+        next.transitions[next.transitionCount++] =
+            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false, true};
         return next;
     }
 
@@ -105,7 +123,7 @@ struct Hsm {
     {
         Hsm next = *this;
         next.transitions[next.transitionCount++] =
-            TransitionRow<StateEnum, EventEnum, Host>{source, event, source, action, guard, true};
+            TransitionRow<StateEnum, EventEnum, Host>{source, event, source, action, guard, true, false};
         return next;
     }
 
