@@ -13,12 +13,13 @@
 // fails to compile and that the diagnostic names the offending element. That is
 // the part a pure-runtime test cannot show.
 
-#include "eta_hsm/examples/cd_player/cd_player.hpp"
-#include "eta_hsm/examples/nested/nested.hpp"
-#include "eta_hsm/machine/hsm.hpp"
 #include "eta_hsm/machine/validator.hpp"
 
 #include <gtest/gtest.h>
+
+#include "eta_hsm/examples/cd_player/cd_player.hpp"
+#include "eta_hsm/examples/nested/nested.hpp"
+#include "eta_hsm/machine/hsm.hpp"
 
 namespace eta_hsm::validator_test {
 namespace {
@@ -83,8 +84,7 @@ TEST(Validator, MultipleTopStatesRejected)
 
 // Check 2: a non-Top State whose parent is never declared is rejected. Here B's
 // parent C has no row (C is only an enumerator), so B has no place in the tree.
-inline constexpr auto missing_parent =
-    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::C);
+inline constexpr auto missing_parent = Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::C);
 TEST(Validator, MissingParentRejected)
 {
     constexpr auto report = validate<missing_parent>();
@@ -95,8 +95,7 @@ TEST(Validator, MissingParentRejected)
 
 // Check 3: a Composite State (A is the parent of B) with no Initial Substate is
 // rejected -- the machine would have nowhere to rest after entering A.
-inline constexpr auto composite_no_initial =
-    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::A);
+inline constexpr auto composite_no_initial = Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::A);
 TEST(Validator, CompositeWithoutInitialRejected)
 {
     constexpr auto report = validate<composite_no_initial>();
@@ -108,12 +107,7 @@ TEST(Validator, CompositeWithoutInitialRejected)
 // Check 3: a Composite State whose Initial Substate is not one of its children is
 // rejected. A is the parent of B, but its declared initial C lives under Top.
 inline constexpr auto initial_not_child =
-    Hsm<H, S, E>{}
-        .initial(S::Top, S::A)
-        .state(S::A, S::Top)
-        .state(S::B, S::A)
-        .state(S::C, S::Top)
-        .initial(S::A, S::C);
+    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::A).state(S::C, S::Top).initial(S::A, S::C);
 TEST(Validator, InitialSubstateNotAChildRejected)
 {
     constexpr auto report = validate<initial_not_child>();
@@ -124,8 +118,7 @@ TEST(Validator, InitialSubstateNotAChildRejected)
 
 // Check 4: a Transition whose Target is not a declared State is rejected. The
 // (A, Go) Transition targets C, which has no row.
-inline constexpr auto bad_target =
-    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).on(S::A, E::Go, S::C);
+inline constexpr auto bad_target = Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).on(S::A, E::Go, S::C);
 TEST(Validator, TransitionTargetNotDeclaredRejected)
 {
     constexpr auto report = validate<bad_target>();
@@ -160,8 +153,7 @@ TEST(Validator, UnwiredMarkerSuppressesExhaustiveness)
 
 // The opt-out is per State: marking only B .unwired still rejects the machine for
 // the remaining unwired enumerator C. The marker suppresses one State, not all.
-inline constexpr auto unwired_partial =
-    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).unwired(S::B);
+inline constexpr auto unwired_partial = Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).unwired(S::B);
 TEST(Validator, UnwiredMarkerSuppressesOnlyTheMarkedState)
 {
     constexpr auto report = validate<unwired_partial>();
@@ -172,11 +164,8 @@ TEST(Validator, UnwiredMarkerSuppressesOnlyTheMarkedState)
 
 // A base for the check-6 tables: a flat machine where A, B and C are all declared
 // Leaves, so only the Transition conflict under test is in play.
-inline constexpr auto flat_base = Hsm<H, S, E>{}
-                                      .initial(S::Top, S::A)
-                                      .state(S::A, S::Top)
-                                      .state(S::B, S::Top)
-                                      .state(S::C, S::Top);
+inline constexpr auto flat_base =
+    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::Top).state(S::C, S::Top);
 
 // Check 6: two Transitions on the same (Source, Event) with no Guards to tell them
 // apart are ambiguous and rejected.

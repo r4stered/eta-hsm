@@ -35,7 +35,8 @@ consteval std::array<std::pair<E, std::string_view>, enum_count<E>()> enum_table
 {
     std::array<std::pair<E, std::string_view>, enum_count<E>()> table{};
     std::size_t i = 0;
-    for (std::meta::info e : std::meta::enumerators_of(^^E)) {
+    for (std::meta::info e : std::meta::enumerators_of(^^E))
+    {
         table[i].first = std::meta::extract<E>(e);
         table[i].second = std::meta::identifier_of(e);
         ++i;
@@ -52,7 +53,8 @@ consteval std::array<E, enum_count<E>()> enum_values()
 {
     std::array<E, enum_count<E>()> values{};
     auto const table = detail::enum_table<E>();
-    for (std::size_t i = 0; i < values.size(); ++i) {
+    for (std::size_t i = 0; i < values.size(); ++i)
+    {
         values[i] = table[i].first;
     }
     return values;
@@ -64,8 +66,10 @@ template <typename E>
 constexpr std::optional<std::string_view> enum_name(E value)
 {
     constexpr auto table = detail::enum_table<E>();
-    for (auto const& [enumerator, name] : table) {
-        if (enumerator == value) {
+    for (auto const& [enumerator, name] : table)
+    {
+        if (enumerator == value)
+        {
             return name;
         }
     }

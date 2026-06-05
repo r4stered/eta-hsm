@@ -34,23 +34,17 @@ inline constexpr auto table = Hsm<H, S, E>{}.state(S::A, S::Top);
 
 #elif VALIDATOR_CASE == 2
 // Check 2: B's parent C is never declared.
-inline constexpr auto table =
-    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::C).unwired(S::C);
+inline constexpr auto table = Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::C).unwired(S::C);
 
 #elif VALIDATOR_CASE == 3
 // Check 3: Composite A's Initial Substate C is not one of A's children.
-inline constexpr auto table = Hsm<H, S, E>{}
-                                  .initial(S::Top, S::A)
-                                  .state(S::A, S::Top)
-                                  .state(S::B, S::A)
-                                  .state(S::C, S::Top)
-                                  .initial(S::A, S::C);
+inline constexpr auto table =
+    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).state(S::B, S::A).state(S::C, S::Top).initial(S::A, S::C);
 
 #elif VALIDATOR_CASE == 4
 // Check 4: the (A, Go) Transition targets undeclared State C.
 inline constexpr auto table =
-    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).unwired(S::B).unwired(S::C).on(
-        S::A, E::Go, S::C);
+    Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).unwired(S::B).unwired(S::C).on(S::A, E::Go, S::C);
 
 #elif VALIDATOR_CASE == 5
 // Check 5: enumerators B and C are wired nowhere and not marked .unwired.

@@ -9,12 +9,12 @@
 // topology, so a trivial two-Leaf machine is enough. The current Leaf is the only
 // State a During tick ever touches, so no hierarchy is needed to exercise it.
 
-#include "eta_hsm/machine/hsm.hpp"
-#include "eta_hsm/machine/machine.hpp"
-
 #include <gtest/gtest.h>
 
 #include <string>
+
+#include "eta_hsm/machine/hsm.hpp"
+#include "eta_hsm/machine/machine.hpp"
 
 namespace eta_hsm::during_test {
 namespace {

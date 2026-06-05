@@ -27,12 +27,12 @@ namespace eta_hsm::examples::nested {
 
 enum class State { Top, A, A1, A2, B, B1, B1a, B1b, B2 };
 enum class Event {
-    Go,          // A1 -> B1b: cross-composite Transition into a deep Leaf
-    Within,      // B1a -> B1b: sibling Transition inside B1
-    Up,          // B1a -> B2: cross-level Transition inside B
-    ToB,         // A1 -> B: Target is a Composite; settles in B1a by drilling
-    Back,        // B1a -> A: Target Composite in the other branch; settles in A1
-    Reset,       // handled by Top from any Leaf: -> A (drills to A1)
+    Go,  // A1 -> B1b: cross-composite Transition into a deep Leaf
+    Within,  // B1a -> B1b: sibling Transition inside B1
+    Up,  // B1a -> B2: cross-level Transition inside B
+    ToB,  // A1 -> B: Target is a Composite; settles in B1a by drilling
+    Back,  // B1a -> A: Target Composite in the other branch; settles in A1
+    Reset,  // handled by Top from any Leaf: -> A (drills to A1)
     ReenterExt,  // A -> A1, External: exits and re-enters A
     ReenterLoc,  // A -> A1, Local: does NOT exit/re-enter A
 };
@@ -64,27 +64,26 @@ struct Model {
     void exit_B2() { log += "-B2;"; }
 };
 
-inline constexpr auto model =
-    Hsm<Model, State, Event>{}
-        .state(State::A, State::Top)
-        .state(State::A1, State::A)
-        .state(State::A2, State::A)
-        .state(State::B, State::Top)
-        .state(State::B1, State::B)
-        .state(State::B1a, State::B1)
-        .state(State::B1b, State::B1)
-        .state(State::B2, State::B)
-        .initial(State::Top, State::A)
-        .initial(State::A, State::A1)
-        .initial(State::B, State::B1)
-        .initial(State::B1, State::B1a)
-        .on(State::A1, Event::Go, State::B1b, &Model::act_go)
-        .on(State::B1a, Event::Within, State::B1b)
-        .on(State::B1a, Event::Up, State::B2)
-        .on(State::A1, Event::ToB, State::B)
-        .on(State::B1a, Event::Back, State::A)
-        .on(State::Top, Event::Reset, State::A)
-        .on(State::A, Event::ReenterExt, State::A1)
-        .local(State::A, Event::ReenterLoc, State::A1);
+inline constexpr auto model = Hsm<Model, State, Event>{}
+                                  .state(State::A, State::Top)
+                                  .state(State::A1, State::A)
+                                  .state(State::A2, State::A)
+                                  .state(State::B, State::Top)
+                                  .state(State::B1, State::B)
+                                  .state(State::B1a, State::B1)
+                                  .state(State::B1b, State::B1)
+                                  .state(State::B2, State::B)
+                                  .initial(State::Top, State::A)
+                                  .initial(State::A, State::A1)
+                                  .initial(State::B, State::B1)
+                                  .initial(State::B1, State::B1a)
+                                  .on(State::A1, Event::Go, State::B1b, &Model::act_go)
+                                  .on(State::B1a, Event::Within, State::B1b)
+                                  .on(State::B1a, Event::Up, State::B2)
+                                  .on(State::A1, Event::ToB, State::B)
+                                  .on(State::B1a, Event::Back, State::A)
+                                  .on(State::Top, Event::Reset, State::A)
+                                  .on(State::A, Event::ReenterExt, State::A1)
+                                  .local(State::A, Event::ReenterLoc, State::A1);
 
 }  // namespace eta_hsm::examples::nested

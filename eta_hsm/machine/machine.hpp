@@ -37,12 +37,13 @@ struct fixed_string {
 // sanitizer job. The piecewise match needs no allocation and stays constexpr-pure.
 consteval bool hook_named(std::meta::info m, std::string_view prefix, std::string_view state)
 {
-    if (!std::meta::has_identifier(m)) {
+    if (!std::meta::has_identifier(m))
+    {
         return false;
     }
     const std::string_view id = std::meta::identifier_of(m);
-    return id.size() == prefix.size() + 1 + state.size() && id.substr(0, prefix.size()) == prefix
-        && id[prefix.size()] == '_' && id.substr(prefix.size() + 1) == state;
+    return id.size() == prefix.size() + 1 + state.size() && id.substr(0, prefix.size()) == prefix &&
+           id[prefix.size()] == '_' && id.substr(prefix.size() + 1) == state;
 }
 
 // Call host.<Prefix>_<Name>(args...) for the State `s`, where <Name> is s's
@@ -56,15 +57,20 @@ consteval bool hook_named(std::meta::info m, std::string_view prefix, std::strin
 template <fixed_string Prefix, class Host, class StateEnum, class... Args>
 void run_hook(Host& host, StateEnum s, Args&&... args)
 {
-    template for (constexpr std::meta::info ev :
-                  std::define_static_array(std::meta::enumerators_of(^^StateEnum))) {
-        if (s == std::meta::extract<StateEnum>(ev)) {
+    template for (constexpr std::meta::info ev : std::define_static_array(std::meta::enumerators_of(^^StateEnum)))
+    {
+        if (s == std::meta::extract<StateEnum>(ev))
+        {
             constexpr std::string_view name = std::meta::identifier_of(ev);
-            template for (constexpr std::meta::info m : std::define_static_array(
-                              std::meta::members_of(^^Host, std::meta::access_context::current()))) {
-                if constexpr (std::meta::is_function(m) && !std::meta::is_special_member_function(m)) {
-                    if constexpr (hook_named(m, Prefix.view(), name)) {
-                        if constexpr (requires { (host.[:m:])(std::forward<Args>(args)...); }) {
+            template for (constexpr std::meta::info m :
+                          std::define_static_array(std::meta::members_of(^^Host, std::meta::access_context::current())))
+            {
+                if constexpr (std::meta::is_function(m) && !std::meta::is_special_member_function(m))
+                {
+                    if constexpr (hook_named(m, Prefix.view(), name))
+                    {
+                        if constexpr (requires { (host.[:m:])(std::forward<Args>(args)...); })
+                        {
                             (host.[:m:])(std::forward<Args>(args)...);
                         }
                     }
@@ -79,8 +85,10 @@ void run_hook(Host& host, StateEnum s, Args&&... args)
 template <auto Table, class StateEnum>
 constexpr std::size_t state_index(StateEnum s)
 {
-    for (std::size_t i = 0; i < Table.stateCount; ++i) {
-        if (Table.states[i].state == s) {
+    for (std::size_t i = 0; i < Table.stateCount; ++i)
+    {
+        if (Table.states[i].state == s)
+        {
             return i;
         }
     }
@@ -91,8 +99,10 @@ constexpr std::size_t state_index(StateEnum s)
 template <auto Table, class StateEnum>
 constexpr StateEnum top_state()
 {
-    for (std::size_t i = 0; i < Table.stateCount; ++i) {
-        if (Table.states[i].isTop) {
+    for (std::size_t i = 0; i < Table.stateCount; ++i)
+    {
+        if (Table.states[i].isTop)
+        {
             return Table.states[i].state;
         }
     }
@@ -106,12 +116,15 @@ template <auto Table, class StateEnum>
 constexpr bool is_ancestor_or_self(StateEnum a, StateEnum b)
 {
     StateEnum cur = b;
-    for (;;) {
-        if (cur == a) {
+    for (;;)
+    {
+        if (cur == a)
+        {
             return true;
         }
         std::size_t const i = state_index<Table>(cur);
-        if (i == Table.stateCount || Table.states[i].isTop) {
+        if (i == Table.stateCount || Table.states[i].isTop)
+        {
             return false;  // reached the root (or an unknown State) without matching
         }
         cur = Table.states[i].parent;
@@ -128,16 +141,20 @@ template <auto Table, class StateEnum>
 constexpr StateEnum lca_external(StateEnum source, StateEnum target)
 {
     std::size_t const i = state_index<Table>(source);
-    if (i == Table.stateCount || Table.states[i].isTop) {
+    if (i == Table.stateCount || Table.states[i].isTop)
+    {
         return top_state<Table, StateEnum>();
     }
     StateEnum cur = Table.states[i].parent;  // first strict ancestor of source
-    for (;;) {
-        if (is_ancestor_or_self<Table>(cur, target)) {
+    for (;;)
+    {
+        if (is_ancestor_or_self<Table>(cur, target))
+        {
             return cur;
         }
         std::size_t const j = state_index<Table>(cur);
-        if (j == Table.stateCount || Table.states[j].isTop) {
+        if (j == Table.stateCount || Table.states[j].isTop)
+        {
             return top_state<Table, StateEnum>();
         }
         cur = Table.states[j].parent;
@@ -151,10 +168,12 @@ constexpr StateEnum lca_external(StateEnum source, StateEnum target)
 template <auto Table, class StateEnum>
 constexpr StateEnum lca_local(StateEnum source, StateEnum target)
 {
-    if (is_ancestor_or_self<Table>(source, target)) {
+    if (is_ancestor_or_self<Table>(source, target))
+    {
         return source;  // Source contains Target (or Source == Target): keep Source
     }
-    if (is_ancestor_or_self<Table>(target, source)) {
+    if (is_ancestor_or_self<Table>(target, source))
+    {
         return target;  // Target contains Source: keep Target
     }
     return lca_external<Table>(source, target);
@@ -169,7 +188,8 @@ consteval auto transitions()
                              typename decltype(Table)::HostType>,
                Table.transitionCount>
         out{};
-    for (std::size_t i = 0; i < Table.transitionCount; ++i) {
+    for (std::size_t i = 0; i < Table.transitionCount; ++i)
+    {
         out[i] = Table.transitions[i];
     }
     return out;
@@ -214,7 +234,8 @@ public:
     {
         static constexpr auto trs = detail::transitions<Table>();
         State handler = current_;
-        for (;;) {
+        for (;;)
+        {
             bool found = false;
             State source{};
             State target{};
@@ -224,9 +245,10 @@ public:
             // First matching Transition whose Guard passes wins. A guarded row
             // whose Guard is false is skipped, so the Event keeps deferring -- to
             // a later same-source fallback row, or up the parent chain.
-            template for (constexpr auto tr : trs) {
-                if (!found && tr.source == handler && tr.event == event &&
-                    (tr.guard == nullptr || (host_.*tr.guard)())) {
+            template for (constexpr auto tr : trs)
+            {
+                if (!found && tr.source == handler && tr.event == event && (tr.guard == nullptr || (host_.*tr.guard)()))
+                {
                     source = tr.source;
                     target = tr.target;
                     action = tr.action;
@@ -235,11 +257,14 @@ public:
                     found = true;
                 }
             }
-            if (found) {
-                if (internal) {
+            if (found)
+            {
+                if (internal)
+                {
                     // Internal Transition: run the Action only. No Exit/Entry, no
                     // State change -- the machine rests where it already was.
-                    if (action != nullptr) {
+                    if (action != nullptr)
+                    {
                         (host_.*action)();
                     }
                     return;
@@ -247,7 +272,8 @@ public:
                 take_transition(source, target, action, local);
                 return;
             }
-            if (is_top(handler)) {
+            if (is_top(handler))
+            {
                 return;  // unhandled by the whole chain
             }
             handler = parent_of(handler);
@@ -277,11 +303,14 @@ public:
     bool isInSubstateOf(State ancestor) const
     {
         State s = current_;
-        for (;;) {
-            if (s == ancestor) {
+        for (;;)
+        {
+            if (s == ancestor)
+            {
                 return true;
             }
-            if (is_top(s)) {
+            if (is_top(s))
+            {
                 return false;
             }
             s = parent_of(s);
@@ -316,15 +345,17 @@ private:
     // Local does not -- the only difference is which State the LCA resolves to.
     void take_transition(State source, State target, void (Host::*action)(), bool local)
     {
-        State const lca = local ? detail::lca_local<Table>(source, target)
-                                : detail::lca_external<Table>(source, target);
+        State const lca =
+            local ? detail::lca_local<Table>(source, target) : detail::lca_external<Table>(source, target);
 
         // Exit the active States from the current Leaf up to the LCA, bottom-up.
-        for (State s = current_; s != lca; s = parent_of(s)) {
+        for (State s = current_; s != lca; s = parent_of(s))
+        {
             detail::run_hook<"exit">(host_, s);
         }
 
-        if (action != nullptr) {
+        if (action != nullptr)
+        {
             (host_.*action)();  // Action runs between Exit and Entry
         }
 
@@ -332,10 +363,12 @@ private:
         // fire each Entry hook top-down (the order States are actually entered).
         State path[kMaxStates];
         std::size_t depth = 0;
-        for (State s = target; s != lca; s = parent_of(s)) {
+        for (State s = target; s != lca; s = parent_of(s))
+        {
             path[depth++] = s;
         }
-        while (depth-- > 0) {
+        while (depth-- > 0)
+        {
             detail::run_hook<"entry">(host_, path[depth]);
         }
 
@@ -343,9 +376,11 @@ private:
         // State's Entry hook on the way down. This is where a Composite Target
         // settles in the Leaf the machine comes to rest in.
         State leaf = target;
-        for (;;) {
+        for (;;)
+        {
             std::size_t const i = detail::state_index<Table>(leaf);
-            if (i == Table.stateCount || !Table.states[i].hasInitial) {
+            if (i == Table.stateCount || !Table.states[i].hasInitial)
+            {
                 break;
             }
             leaf = Table.states[i].initial;
@@ -360,9 +395,11 @@ private:
     {
         State s = detail::top_state<Table, State>();
         detail::run_hook<"entry">(host_, s);
-        for (;;) {
+        for (;;)
+        {
             std::size_t const i = detail::state_index<Table>(s);
-            if (i == Table.stateCount || !Table.states[i].hasInitial) {
+            if (i == Table.stateCount || !Table.states[i].hasInitial)
+            {
                 return s;
             }
             s = Table.states[i].initial;

@@ -29,9 +29,9 @@ template <class StateEnum>
 struct StateRow {
     StateEnum state{};
     StateEnum parent{};
-    bool isTop{false};       // the single root; has no parent
+    bool isTop{false};  // the single root; has no parent
     bool hasInitial{false};  // true once an Initial Substate is declared
-    StateEnum initial{};     // the Initial Substate, when hasInitial
+    StateEnum initial{};  // the Initial Substate, when hasInitial
 };
 
 // One Transition: on `event` while in (or deferring through) `source`, move to
@@ -46,7 +46,7 @@ struct TransitionRow {
     void (Host::*action)() = nullptr;
     bool (Host::*guard)() const = nullptr;
     bool internal{false};  // Internal Transition: run `action` only, no State change, no Exit/Entry
-    bool local{false};     // Local Transition: skip Exit/re-entry of the shared ancestor (parent/child cases)
+    bool local{false};  // Local Transition: skip Exit/re-entry of the shared ancestor (parent/child cases)
 };
 
 // The fluent builder and the table value are the same type: every modifier
@@ -83,7 +83,8 @@ struct Hsm {
     {
         Hsm next = *this;
         StateRow<StateEnum>* row = next.find(parent);
-        if (row == nullptr) {
+        if (row == nullptr)
+        {
             next.states[next.stateCount] = StateRow<StateEnum>{parent, parent, true, false, {}};
             row = &next.states[next.stateCount];
             ++next.stateCount;
@@ -96,8 +97,7 @@ struct Hsm {
     // Declare a Transition (Source, Event, Target), optionally running `action`
     // on the Host between Exit and Entry and optionally conditioned by `guard`.
     // The Transition is taken only when `guard` is null or returns true.
-    constexpr Hsm on(StateEnum source, EventEnum event, StateEnum target,
-                     void (Host::*action)() = nullptr,
+    constexpr Hsm on(StateEnum source, EventEnum event, StateEnum target, void (Host::*action)() = nullptr,
                      bool (Host::*guard)() const = nullptr) const
     {
         Hsm next = *this;
@@ -110,8 +110,7 @@ struct Hsm {
     // that when Source and Target are in a parent/child relationship the shared
     // ancestor is not Exited and re-entered. For unrelated States it behaves like
     // an External Transition. External (.on) is the default.
-    constexpr Hsm local(StateEnum source, EventEnum event, StateEnum target,
-                        void (Host::*action)() = nullptr,
+    constexpr Hsm local(StateEnum source, EventEnum event, StateEnum target, void (Host::*action)() = nullptr,
                         bool (Host::*guard)() const = nullptr) const
     {
         Hsm next = *this;
@@ -145,8 +144,10 @@ struct Hsm {
 private:
     constexpr StateRow<StateEnum>* find(StateEnum s)
     {
-        for (std::size_t i = 0; i < stateCount; ++i) {
-            if (states[i].state == s) {
+        for (std::size_t i = 0; i < stateCount; ++i)
+        {
+            if (states[i].state == s)
+            {
                 return &states[i];
             }
         }

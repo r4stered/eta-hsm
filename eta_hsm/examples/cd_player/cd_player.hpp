@@ -21,7 +21,7 @@ enum class Event { Play, OpenClose, Stop, CdDetected, Pause, EndPause, Hammer, V
 struct Player {
     std::string log;
     bool drawer_stuck{false};  // backs the drawer_jammed Guard
-    int volume{0};             // mutated by the turn_up Internal-Transition Action
+    int volume{0};  // mutated by the turn_up Internal-Transition Action
 
     // A Guard: `bool (Player::*)() const`. Whacking a jammed drawer with the
     // Hammer frees it; an un-jammed drawer defers the Hammer to Top.
@@ -35,7 +35,11 @@ struct Player {
     void pause_playback() { log += "pause_playback;"; }
     void resume_playback() { log += "resume_playback;"; }
     void stop_and_open() { log += "stop_and_open;"; }
-    void turn_up() { ++volume; log += "turn_up;"; }
+    void turn_up()
+    {
+        ++volume;
+        log += "turn_up;";
+    }
     void next_track() { log += "next_track;"; }
 
     // Per-State Entry/Exit hooks, auto-detected by reflection: the Host writes

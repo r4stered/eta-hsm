@@ -79,8 +79,7 @@ TEST(EnumReflection, UsableInConstantExpressions)
 {
     // Mirror the file-scope static_asserts in a local constant expression, so a
     // regression in constexpr-ness surfaces as a clear compile error here too.
-    constexpr bool ok = eta_hsm::enum_count<State>() == 4u &&
-                        eta_hsm::enum_name(State::Stopped) == "Stopped";
+    constexpr bool ok = eta_hsm::enum_count<State>() == 4u && eta_hsm::enum_name(State::Stopped) == "Stopped";
     static_assert(ok);
     SUCCEED();
 }

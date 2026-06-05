@@ -5,9 +5,10 @@
 // internal table layout or generated-dispatch structure.
 
 #include "eta_hsm/examples/nested/nested.hpp"
-#include "eta_hsm/machine/machine.hpp"
 
 #include <gtest/gtest.h>
+
+#include "eta_hsm/machine/machine.hpp"
 
 namespace eta_hsm::examples::nested {
 namespace {
@@ -103,10 +104,10 @@ TEST(Nested, IsInSubstateOfReportsNestedAncestry)
     Machine<model> m;
     m.dispatch(Event::ToB);  // rest in B1a
     EXPECT_TRUE(m.isInSubstateOf(State::B1a));  // the Leaf itself
-    EXPECT_TRUE(m.isInSubstateOf(State::B1));   // its Composite parent
-    EXPECT_TRUE(m.isInSubstateOf(State::B));    // its Composite grandparent
+    EXPECT_TRUE(m.isInSubstateOf(State::B1));  // its Composite parent
+    EXPECT_TRUE(m.isInSubstateOf(State::B));  // its Composite grandparent
     EXPECT_TRUE(m.isInSubstateOf(State::Top));  // the root
-    EXPECT_FALSE(m.isInSubstateOf(State::A));   // the other branch
+    EXPECT_FALSE(m.isInSubstateOf(State::A));  // the other branch
     EXPECT_FALSE(m.isInSubstateOf(State::B2));  // a sibling under B
 }
 
@@ -122,9 +123,9 @@ TEST(Nested, ScriptedRunProducesExpectedStateSequence)
         State expected;
     };
     constexpr Step script[] = {
-        {Event::ToB, State::B1a},    // A1  -> B (drills to B1a)
-        {Event::Within, State::B1b}, // B1a -> B1b (sibling)
-        {Event::Up, State::B2},      // B1b -> ... defers? Up is on B1a only
+        {Event::ToB, State::B1a},  // A1  -> B (drills to B1a)
+        {Event::Within, State::B1b},  // B1a -> B1b (sibling)
+        {Event::Up, State::B2},  // B1b -> ... defers? Up is on B1a only
     };
     // Up is declared on B1a, not B1b; from B1b it is unhandled, so the machine
     // stays in B1b. Assert that explicitly rather than encoding it in the script.

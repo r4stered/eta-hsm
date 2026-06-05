@@ -4,9 +4,10 @@
 // and effects, never internal table layout or generated-dispatch structure.
 
 #include "eta_hsm/examples/cd_player/cd_player.hpp"
-#include "eta_hsm/machine/machine.hpp"
 
 #include <gtest/gtest.h>
+
+#include "eta_hsm/machine/machine.hpp"
 
 namespace eta_hsm::examples::cd_player {
 namespace {
@@ -48,16 +49,17 @@ TEST(CdPlayer, ScriptedRunProducesExpectedStateSequence)
         State expected;
     };
     constexpr Step script[] = {
-        {Event::Play, State::Playing},        // Stopped -> Playing
-        {Event::Pause, State::Paused},        // Playing -> Paused
-        {Event::EndPause, State::Playing},    // Paused  -> Playing
-        {Event::Stop, State::Stopped},        // Playing -> Stopped
-        {Event::OpenClose, State::Open},      // Stopped -> Open
-        {Event::OpenClose, State::Empty},     // Open    -> Empty
+        {Event::Play, State::Playing},  // Stopped -> Playing
+        {Event::Pause, State::Paused},  // Playing -> Paused
+        {Event::EndPause, State::Playing},  // Paused  -> Playing
+        {Event::Stop, State::Stopped},  // Playing -> Stopped
+        {Event::OpenClose, State::Open},  // Stopped -> Open
+        {Event::OpenClose, State::Empty},  // Open    -> Empty
         {Event::CdDetected, State::Stopped},  // Empty   -> Stopped
     };
 
-    for (auto const& step : script) {
+    for (auto const& step : script)
+    {
         m.dispatch(step.event);
         EXPECT_EQ(m.identify(), step.expected);
     }
@@ -96,7 +98,7 @@ TEST(CdPlayer, IsInSubstateOfReportsAncestry)
 {
     Machine<player> m;
     ASSERT_EQ(m.identify(), State::Stopped);
-    EXPECT_TRUE(m.isInSubstateOf(State::Top));      // Top is the ancestor of all Leaves
+    EXPECT_TRUE(m.isInSubstateOf(State::Top));  // Top is the ancestor of all Leaves
     EXPECT_TRUE(m.isInSubstateOf(State::Stopped));  // the current Leaf itself
     EXPECT_FALSE(m.isInSubstateOf(State::Playing));
 
@@ -124,7 +126,7 @@ TEST(CdPlayer, TransitionRunsItsAction)
 TEST(CdPlayer, RunsExitThenActionThenEntry)
 {
     Machine<player> m;
-    m.host().log.clear();     // drop the construction entry chain; focus on the Dispatch
+    m.host().log.clear();  // drop the construction entry chain; focus on the Dispatch
     m.dispatch(Event::Play);  // Stopped -> Playing
     EXPECT_EQ(m.host().log, "-Stopped;start_playback;+Playing;");
 }
@@ -178,9 +180,9 @@ TEST(CdPlayer, InternalTransitionRunsActionWithoutStateChange)
 
     m.dispatch(Event::VolumeUp);
 
-    EXPECT_EQ(m.identify(), State::Playing);       // unchanged
-    EXPECT_EQ(m.host().volume, before + 1);        // Action ran
-    EXPECT_EQ(m.host().log, "turn_up;");           // Action only -- no Exit/Entry
+    EXPECT_EQ(m.identify(), State::Playing);  // unchanged
+    EXPECT_EQ(m.host().volume, before + 1);  // Action ran
+    EXPECT_EQ(m.host().log, "turn_up;");  // Action only -- no Exit/Entry
 }
 
 // A Self-Transition re-enters the same State: unlike an Internal Transition it

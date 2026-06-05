@@ -24,12 +24,12 @@ namespace eta_hsm {
 // and the first failure wins, so a report carries exactly one error.
 enum class ValidationError {
     None,
-    NoTopState,           // check 1: zero Top States
-    MultipleTopStates,    // check 1: more than one Top State
-    MissingParent,        // check 2: a non-Top State's parent is not declared
-    InitialNotChild,      // check 3: a Composite State lacks a valid Initial Substate
-    TargetNotDeclared,    // check 4: a Transition Target is not a declared State
-    EnumeratorNotWired,   // check 5: a State enumerator is neither declared nor .unwired
+    NoTopState,  // check 1: zero Top States
+    MultipleTopStates,  // check 1: more than one Top State
+    MissingParent,  // check 2: a non-Top State's parent is not declared
+    InitialNotChild,  // check 3: a Composite State lacks a valid Initial Substate
+    TargetNotDeclared,  // check 4: a Transition Target is not a declared State
+    EnumeratorNotWired,  // check 5: a State enumerator is neither declared nor .unwired
     DuplicateTransition,  // check 6: same (Source, Event) without distinct Guards
 };
 
@@ -56,8 +56,10 @@ struct MsgBuf {
     std::size_t len{0};
     constexpr void operator+=(std::string_view s)
     {
-        for (char c : s) {
-            if (len + 1 < text.size()) {
+        for (char c : s)
+        {
+            if (len + 1 < text.size())
+            {
                 text[len++] = c;
             }
         }
@@ -80,7 +82,8 @@ constexpr ValidationReport failure(ValidationError error, const MsgBuf& m)
     r.ok = false;
     r.error = error;
     r.len = m.len;
-    for (std::size_t i = 0; i < m.len; ++i) {
+    for (std::size_t i = 0; i < m.len; ++i)
+    {
         r.text[i] = m.text[i];
     }
     return r;
@@ -100,22 +103,29 @@ consteval ValidationReport validate()
     std::size_t tops = 0;
     State firstTop{};
     State secondTop{};
-    for (std::size_t i = 0; i < Table.stateCount; ++i) {
-        if (Table.states[i].isTop) {
-            if (tops == 0) {
+    for (std::size_t i = 0; i < Table.stateCount; ++i)
+    {
+        if (Table.states[i].isTop)
+        {
+            if (tops == 0)
+            {
                 firstTop = Table.states[i].state;
-            } else if (tops == 1) {
+            }
+            else if (tops == 1)
+            {
                 secondTop = Table.states[i].state;
             }
             ++tops;
         }
     }
-    if (tops == 0) {
+    if (tops == 0)
+    {
         detail::MsgBuf m;
         m += "no Top State declared (every machine needs exactly one)";
         return detail::failure(ValidationError::NoTopState, m);
     }
-    if (tops > 1) {
+    if (tops > 1)
+    {
         detail::MsgBuf m;
         m += "multiple Top States: ";
         m += detail::name(firstTop);
@@ -126,8 +136,10 @@ consteval ValidationReport validate()
 
     // A State is "declared" when it has a row in the table.
     auto declared = [](State s) {
-        for (std::size_t i = 0; i < Table.stateCount; ++i) {
-            if (Table.states[i].state == s) {
+        for (std::size_t i = 0; i < Table.stateCount; ++i)
+        {
+            if (Table.states[i].state == s)
+            {
                 return true;
             }
         }
@@ -135,8 +147,10 @@ consteval ValidationReport validate()
     };
 
     // Check 2: every non-Top State has a declared parent.
-    for (std::size_t i = 0; i < Table.stateCount; ++i) {
-        if (!Table.states[i].isTop && !declared(Table.states[i].parent)) {
+    for (std::size_t i = 0; i < Table.stateCount; ++i)
+    {
+        if (!Table.states[i].isTop && !declared(Table.states[i].parent))
+        {
             detail::MsgBuf m;
             m += "State ";
             m += detail::name(Table.states[i].state);
@@ -149,16 +163,20 @@ consteval ValidationReport validate()
     // `parent` is a Composite State when some other State names it as parent;
     // `child_of` is true when `c` is a declared child of `parent`.
     auto isComposite = [](State parent) {
-        for (std::size_t i = 0; i < Table.stateCount; ++i) {
-            if (Table.states[i].parent == parent && Table.states[i].state != parent) {
+        for (std::size_t i = 0; i < Table.stateCount; ++i)
+        {
+            if (Table.states[i].parent == parent && Table.states[i].state != parent)
+            {
                 return true;
             }
         }
         return false;
     };
     auto childOf = [](State c, State parent) {
-        for (std::size_t i = 0; i < Table.stateCount; ++i) {
-            if (Table.states[i].state == c && Table.states[i].parent == parent) {
+        for (std::size_t i = 0; i < Table.stateCount; ++i)
+        {
+            if (Table.states[i].state == c && Table.states[i].parent == parent)
+            {
                 return true;
             }
         }
@@ -167,19 +185,23 @@ consteval ValidationReport validate()
 
     // Check 3: every Composite State has an Initial Substate that is one of its
     // children -- otherwise the machine could not settle in a Leaf beneath it.
-    for (std::size_t i = 0; i < Table.stateCount; ++i) {
+    for (std::size_t i = 0; i < Table.stateCount; ++i)
+    {
         State const s = Table.states[i].state;
-        if (!isComposite(s)) {
+        if (!isComposite(s))
+        {
             continue;
         }
-        if (!Table.states[i].hasInitial) {
+        if (!Table.states[i].hasInitial)
+        {
             detail::MsgBuf m;
             m += "Composite State ";
             m += detail::name(s);
             m += " has no Initial Substate";
             return detail::failure(ValidationError::InitialNotChild, m);
         }
-        if (!childOf(Table.states[i].initial, s)) {
+        if (!childOf(Table.states[i].initial, s))
+        {
             detail::MsgBuf m;
             m += "Composite State ";
             m += detail::name(s);
@@ -192,8 +214,10 @@ consteval ValidationReport validate()
 
     // Check 4: every Transition Target is a declared State.
     using Event = typename decltype(Table)::Event;
-    for (std::size_t i = 0; i < Table.transitionCount; ++i) {
-        if (!declared(Table.transitions[i].target)) {
+    for (std::size_t i = 0; i < Table.transitionCount; ++i)
+    {
+        if (!declared(Table.transitions[i].target))
+        {
             detail::MsgBuf m;
             m += "Transition (";
             m += detail::name(Table.transitions[i].source);
@@ -208,8 +232,10 @@ consteval ValidationReport validate()
     // `unwired` is true when `s` was opted out of the exhaustiveness check via
     // .unwired (a work-in-progress enumerator with no State row yet).
     auto unwired = [](State s) {
-        for (std::size_t i = 0; i < Table.unwiredCount; ++i) {
-            if (Table.unwiredStates[i] == s) {
+        for (std::size_t i = 0; i < Table.unwiredCount; ++i)
+        {
+            if (Table.unwiredStates[i] == s)
+            {
                 return true;
             }
         }
@@ -218,8 +244,10 @@ consteval ValidationReport validate()
 
     // Check 5: every enumerator of the State enum is wired into the tree -- it has
     // a declared State row, unless it is explicitly marked .unwired.
-    for (State s : enum_values<State>()) {
-        if (!declared(s) && !unwired(s)) {
+    for (State s : enum_values<State>())
+    {
+        if (!declared(s) && !unwired(s))
+        {
             detail::MsgBuf m;
             m += "enumerator ";
             m += detail::name(s);
@@ -231,15 +259,19 @@ consteval ValidationReport validate()
     // Check 6: no two Transitions share a (Source, Event) without distinct Guards.
     // A pair on the same Source and Event is ambiguous unless both carry a non-null
     // Guard and the two Guards differ -- the only case where dispatch can pick one.
-    for (std::size_t i = 0; i < Table.transitionCount; ++i) {
-        for (std::size_t j = i + 1; j < Table.transitionCount; ++j) {
+    for (std::size_t i = 0; i < Table.transitionCount; ++i)
+    {
+        for (std::size_t j = i + 1; j < Table.transitionCount; ++j)
+        {
             auto const& a = Table.transitions[i];
             auto const& b = Table.transitions[j];
-            if (a.source != b.source || a.event != b.event) {
+            if (a.source != b.source || a.event != b.event)
+            {
                 continue;
             }
             bool const distinctGuards = a.guard != nullptr && b.guard != nullptr && a.guard != b.guard;
-            if (!distinctGuards) {
+            if (!distinctGuards)
+            {
                 detail::MsgBuf m;
                 m += "duplicate Transition (";
                 m += detail::name(a.source);
