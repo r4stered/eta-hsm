@@ -21,3 +21,11 @@ target_link_libraries(reflection_smoke_test
         GTest::gtest_main
 )
 gtest_discover_tests(reflection_smoke_test)
+
+add_executable(enum_reflection_test enum_reflection_test.cpp)
+target_link_libraries(enum_reflection_test
+    PRIVATE
+        EtaHsm::eta_hsm
+        GTest::gtest_main
+)
+gtest_discover_tests(enum_reflection_test)
