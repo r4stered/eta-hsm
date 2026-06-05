@@ -44,3 +44,12 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "validator_test",
+    srcs = ["validator_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)

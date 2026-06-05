@@ -53,3 +53,38 @@ target_link_libraries(during_test
         GTest::gtest_main
 )
 gtest_discover_tests(during_test)
+
+add_executable(validator_test validator_test.cpp)
+target_link_libraries(validator_test
+    PRIVATE
+        EtaHsm::eta_hsm
+        GTest::gtest_main
+)
+gtest_discover_tests(validator_test)
+
+# ----------------------------------------------------------------------------
+# Build-failure harness for the compile-time validator (issue 0006). Each case
+# compiles a deliberately ill-formed machine (validator_negcompile.cpp, one CASE
+# per compile) and passes only if the build fails with a diagnostic naming the
+# offending element. These are pure ctest cases with no build target: the script
+# invokes the compiler itself, so they run wherever g++-16 lives (the project's
+# docker toolchain). This proves the half a runtime test cannot -- that an
+# ill-formed Machine really fails to compile, with a legible message.
+# ----------------------------------------------------------------------------
+set(_eta_repo_root "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+set(_eta_negcompile "${_eta_repo_root}/tools/expect_compile_fail.sh")
+
+function(eta_add_negcompile_test name case pattern)
+    add_test(
+        NAME ${name}
+        COMMAND bash "${_eta_negcompile}" "${case}" "${pattern}"
+        WORKING_DIRECTORY "${_eta_repo_root}"
+    )
+endfunction()
+
+eta_add_negcompile_test(validator_negcompile_no_top         1 "no Top State declared")
+eta_add_negcompile_test(validator_negcompile_missing_parent 2 "State B has undeclared parent C")
+eta_add_negcompile_test(validator_negcompile_initial_child  3 "not one of its children")
+eta_add_negcompile_test(validator_negcompile_bad_target     4 "targets undeclared State C")
+eta_add_negcompile_test(validator_negcompile_unwired        5 "enumerator B is not wired into the tree")
+eta_add_negcompile_test(validator_negcompile_duplicate      6 "without distinct Guards")

@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "eta_hsm/machine/hsm.hpp"
+#include "eta_hsm/machine/validator.hpp"
 
 namespace eta_hsm {
 
@@ -176,6 +177,13 @@ public:
     using Host = typename decltype(Table)::HostType;
     using State = typename decltype(Table)::State;
     using Event = typename decltype(Table)::Event;
+
+    // Validation runs automatically the moment a machine is instantiated: an
+    // ill-formed table fails this static_assert with a message naming the
+    // offending element (issue 0006), rather than surfacing as a deep template
+    // error later. A well-formed table compiles away to nothing.
+    static constexpr ValidationReport kValidation = validate<Table>();
+    static_assert(kValidation.ok, kValidation);
 
     // On construction the machine enters its initial configuration: it runs the
     // Entry hook for Top and for each Initial Substate down to the resting Leaf,

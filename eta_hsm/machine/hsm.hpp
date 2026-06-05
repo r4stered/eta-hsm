@@ -63,6 +63,11 @@ struct Hsm {
     std::size_t stateCount{0};
     std::array<TransitionRow<StateEnum, EventEnum, Host>, kMaxTransitions> transitions{};
     std::size_t transitionCount{0};
+    // Enumerators deliberately not yet wired into the tree. The exhaustiveness
+    // check skips these, so a work-in-progress machine with planned-but-unbuilt
+    // States still validates. Everything else must be a declared State.
+    std::array<StateEnum, kMaxStates> unwiredStates{};
+    std::size_t unwiredCount{0};
 
     // Declare a State and its parent.
     constexpr Hsm state(StateEnum s, StateEnum parent) const
@@ -124,6 +129,16 @@ struct Hsm {
         Hsm next = *this;
         next.transitions[next.transitionCount++] =
             TransitionRow<StateEnum, EventEnum, Host>{source, event, source, action, guard, true, false};
+        return next;
+    }
+
+    // Mark `s` as deliberately not-yet-wired, opting it out of the exhaustiveness
+    // check (issue 0006). Use while a machine is under construction so a planned
+    // enumerator with no State row yet does not fail validation.
+    constexpr Hsm unwired(StateEnum s) const
+    {
+        Hsm next = *this;
+        next.unwiredStates[next.unwiredCount++] = s;
         return next;
     }
 
