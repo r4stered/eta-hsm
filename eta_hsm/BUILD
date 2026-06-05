@@ -5,7 +5,11 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 # e.g. #include "eta_hsm/reflect/reflection_smoke.hpp".
 cc_library(
     name = "eta_hsm",
-    hdrs = glob(["reflect/*.hpp"]),
+    hdrs = glob([
+        "reflect/*.hpp",
+        "machine/*.hpp",
+        "examples/**/*.hpp",
+    ]),
     visibility = ["//visibility:public"],
 )
 

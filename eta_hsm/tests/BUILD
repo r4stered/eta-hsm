@@ -17,3 +17,12 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "cd_player_test",
+    srcs = ["cd_player_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)

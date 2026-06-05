@@ -29,3 +29,11 @@ target_link_libraries(enum_reflection_test
         GTest::gtest_main
 )
 gtest_discover_tests(enum_reflection_test)
+
+add_executable(cd_player_test cd_player_test.cpp)
+target_link_libraries(cd_player_test
+    PRIVATE
+        EtaHsm::eta_hsm
+        GTest::gtest_main
+)
+gtest_discover_tests(cd_player_test)
