@@ -26,5 +26,110 @@ TEST(CdPlayer, DispatchTakesMatchingTransition)
     EXPECT_EQ(m.identify(), State::Playing);
 }
 
+// A scripted Event run produces the correct ordered sequence of current States.
+// This is the acceptance centerpiece: drive the machine the way a user would and
+// assert the Leaf State after every Dispatch.
+TEST(CdPlayer, ScriptedRunProducesExpectedStateSequence)
+{
+    Machine<player> m;
+    ASSERT_EQ(m.identify(), State::Stopped);
+
+    struct Step {
+        Event event;
+        State expected;
+    };
+    constexpr Step script[] = {
+        {Event::Play, State::Playing},        // Stopped -> Playing
+        {Event::Pause, State::Paused},        // Playing -> Paused
+        {Event::EndPause, State::Playing},    // Paused  -> Playing
+        {Event::Stop, State::Stopped},        // Playing -> Stopped
+        {Event::OpenClose, State::Open},      // Stopped -> Open
+        {Event::OpenClose, State::Empty},     // Open    -> Empty
+        {Event::CdDetected, State::Stopped},  // Empty   -> Stopped
+    };
+
+    for (auto const& step : script) {
+        m.dispatch(step.event);
+        EXPECT_EQ(m.identify(), step.expected);
+    }
+}
+
+// An Event with no matching Transition (on the current State or its parent) is
+// ignored: the machine stays where it is.
+TEST(CdPlayer, UnhandledEventLeavesStateUnchanged)
+{
+    Machine<player> m;
+    ASSERT_EQ(m.identify(), State::Stopped);
+    m.dispatch(Event::Stop);  // Stopped handles neither Stop nor defers it anywhere
+    EXPECT_EQ(m.identify(), State::Stopped);
+    m.dispatch(Event::EndPause);
+    EXPECT_EQ(m.identify(), State::Stopped);
+}
+
+// An Event a Leaf does not handle defers to its parent. Hammer is declared only
+// on Top, so it fires from any Leaf and moves the machine to Playing.
+TEST(CdPlayer, EventUnhandledByLeafDefersToParent)
+{
+    Machine<player> m;
+    ASSERT_EQ(m.identify(), State::Stopped);
+    m.dispatch(Event::Hammer);  // Stopped has no Hammer; Top handles it
+    EXPECT_EQ(m.identify(), State::Playing);
+
+    m.dispatch(Event::Pause);
+    ASSERT_EQ(m.identify(), State::Paused);
+    m.dispatch(Event::Hammer);  // from a different Leaf, same parent handler
+    EXPECT_EQ(m.identify(), State::Playing);
+}
+
+// isInSubstateOf asks whether a State is the current Leaf or one of its
+// ancestors. Every Leaf is a substate of Top.
+TEST(CdPlayer, IsInSubstateOfReportsAncestry)
+{
+    Machine<player> m;
+    ASSERT_EQ(m.identify(), State::Stopped);
+    EXPECT_TRUE(m.isInSubstateOf(State::Top));      // Top is the ancestor of all Leaves
+    EXPECT_TRUE(m.isInSubstateOf(State::Stopped));  // the current Leaf itself
+    EXPECT_FALSE(m.isInSubstateOf(State::Playing));
+
+    m.dispatch(Event::Play);
+    ASSERT_EQ(m.identify(), State::Playing);
+    EXPECT_TRUE(m.isInSubstateOf(State::Top));
+    EXPECT_TRUE(m.isInSubstateOf(State::Playing));
+    EXPECT_FALSE(m.isInSubstateOf(State::Stopped));
+}
+
+// A Transition runs its Action on the Host exactly once when taken. (Ordering
+// relative to Entry/Exit is covered separately; here we only pin the Action.)
+TEST(CdPlayer, TransitionRunsItsAction)
+{
+    Machine<player> m;
+    m.dispatch(Event::Play);  // Stopped -> Playing, action start_playback
+    EXPECT_NE(m.host().log.find("start_playback;"), std::string::npos);
+
+    m.dispatch(Event::Pause);  // Playing -> Paused, action pause_playback
+    EXPECT_NE(m.host().log.find("pause_playback;"), std::string::npos);
+}
+
+// A Transition runs, in order: Exit of the State left, the Action, then Entry of
+// the State entered. Entry/Exit hooks are auto-detected by reflection.
+TEST(CdPlayer, RunsExitThenActionThenEntry)
+{
+    Machine<player> m;
+    m.dispatch(Event::Play);  // Stopped -> Playing
+    EXPECT_EQ(m.host().log, "-Stopped;start_playback;+Playing;");
+}
+
+// A State with no entry/exit hook contributes nothing: reflection calls only the
+// hooks the Host actually declares. Open has neither, so leaving Playing for Open
+// fires Exit of Playing and the Action, but no Entry.
+TEST(CdPlayer, MissingHookIsSilentlySkipped)
+{
+    Machine<player> m;
+    m.dispatch(Event::Play);  // Stopped -> Playing
+    m.host().log.clear();
+    m.dispatch(Event::OpenClose);  // Playing -> Open (no entry_Open hook)
+    EXPECT_EQ(m.host().log, "-Playing;stop_and_open;");
+}
+
 }  // namespace
 }  // namespace eta_hsm::examples::cd_player

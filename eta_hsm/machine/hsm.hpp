@@ -79,12 +79,14 @@ struct Hsm {
         return next;
     }
 
-    // Declare a Transition (Source, Event, Target) with no Action.
-    constexpr Hsm on(StateEnum source, EventEnum event, StateEnum target) const
+    // Declare a Transition (Source, Event, Target), optionally running `action`
+    // on the Host between Exit and Entry.
+    constexpr Hsm on(StateEnum source, EventEnum event, StateEnum target,
+                     void (Host::*action)() = nullptr) const
     {
         Hsm next = *this;
         next.transitions[next.transitionCount++] =
-            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, nullptr};
+            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action};
         return next;
     }
 
