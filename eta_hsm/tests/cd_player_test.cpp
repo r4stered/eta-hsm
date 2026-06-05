@@ -18,6 +18,15 @@ TEST(CdPlayer, RestsInInitialSubstate)
     EXPECT_EQ(m.identify(), State::Stopped);
 }
 
+// Construction enters the initial configuration: Entry runs for Top, then for
+// the Initial Substate, in order, before any Event is dispatched.
+TEST(CdPlayer, ConstructionFiresInitialEntryChain)
+{
+    Machine<player> m;
+    EXPECT_EQ(m.host().log, "+Top;+Stopped;");
+    EXPECT_EQ(m.identify(), State::Stopped);
+}
+
 // Dispatching an Event with a matching Transition moves to the Target State.
 TEST(CdPlayer, DispatchTakesMatchingTransition)
 {
@@ -115,6 +124,7 @@ TEST(CdPlayer, TransitionRunsItsAction)
 TEST(CdPlayer, RunsExitThenActionThenEntry)
 {
     Machine<player> m;
+    m.host().log.clear();     // drop the construction entry chain; focus on the Dispatch
     m.dispatch(Event::Play);  // Stopped -> Playing
     EXPECT_EQ(m.host().log, "-Stopped;start_playback;+Playing;");
 }

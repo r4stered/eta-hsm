@@ -33,6 +33,8 @@ struct Player {
     // Per-State Entry/Exit hooks, auto-detected by reflection: the Host writes
     // only the ones it needs. Open/Empty/Broken deliberately have none, so
     // entering/leaving them fires nothing.
+    void entry_Top() { log += "+Top;"; }
+    void exit_Top() { log += "-Top;"; }
     void entry_Stopped() { log += "+Stopped;"; }
     void exit_Stopped() { log += "-Stopped;"; }
     void entry_Playing() { log += "+Playing;"; }

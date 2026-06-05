@@ -125,6 +125,12 @@ public:
     using State = typename decltype(Table)::State;
     using Event = typename decltype(Table)::Event;
 
+    // On construction the machine enters its initial configuration: it runs the
+    // Entry hook for Top and for each Initial Substate down to the resting Leaf,
+    // so the machine never sits in a State whose Entry has not run. (v1 achieved
+    // the same by kicking off a Top -> Top self-transition in its constructor.)
+    Machine() { current_ = enter_initial_chain(); }
+
     // The Leaf State the machine currently rests in.
     State identify() const { return current_; }
 
@@ -200,8 +206,24 @@ private:
         return i != Table.stateCount && Table.states[i].isTop;
     }
 
+    // Walk from Top down the Initial Substate chain, running each State's Entry
+    // hook, and return the resting Leaf. Used once, at construction.
+    State enter_initial_chain()
+    {
+        State s = detail::top_state<Table, State>();
+        detail::run_hook<"entry">(host_, s);
+        for (;;) {
+            std::size_t const i = detail::state_index<Table>(s);
+            if (i == Table.stateCount || !Table.states[i].hasInitial) {
+                return s;
+            }
+            s = Table.states[i].initial;
+            detail::run_hook<"entry">(host_, s);
+        }
+    }
+
     Host host_{};
-    State current_{detail::resting_leaf<Table>(detail::top_state<Table, State>())};
+    State current_{};
 };
 
 }  // namespace eta_hsm
