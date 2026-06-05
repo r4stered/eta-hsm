@@ -10,7 +10,6 @@
 #include <array>
 #include <cstddef>
 #include <meta>
-#include <string>
 #include <string_view>
 #include <utility>
 
@@ -30,13 +29,20 @@ struct fixed_string {
     constexpr std::string_view view() const { return {data, N - 1}; }
 };
 
-// True if member `m` is named `<prefix>_<state>`. Builds the candidate name in a
-// transient consteval allocation (never escapes), so no constexpr std::string
-// has to persist.
+// True if member `m` is named `<prefix>_<state>`. Compares the identifier against
+// the prefix/state pieces with pure string_view operations rather than building a
+// concatenated `std::string`: a transient consteval std::string carries a pointer
+// null-check that -fsanitize=undefined instruments into a non-constant expression,
+// which would make the whole `if constexpr (hook_named(...))` ill-formed under the
+// sanitizer job. The piecewise match needs no allocation and stays constexpr-pure.
 consteval bool hook_named(std::meta::info m, std::string_view prefix, std::string_view state)
 {
-    std::string want = std::string(prefix) + "_" + std::string(state);
-    return std::meta::has_identifier(m) && std::meta::identifier_of(m) == std::string_view{want};
+    if (!std::meta::has_identifier(m)) {
+        return false;
+    }
+    const std::string_view id = std::meta::identifier_of(m);
+    return id.size() == prefix.size() + 1 + state.size() && id.substr(0, prefix.size()) == prefix
+        && id[prefix.size()] == '_' && id.substr(prefix.size() + 1) == state;
 }
 
 // Call host.<Prefix>_<Name>(args...) for the State `s`, where <Name> is s's

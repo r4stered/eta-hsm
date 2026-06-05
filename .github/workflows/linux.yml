@@ -26,6 +26,21 @@ jobs:
           check-path: 'eta_hsm'
           exclude-regex: ''
 
+  # Mirrors the local pre-commit `gersemi` hook (.gersemirc pins the config and
+  # teaches it the custom eta_add_negcompile_test command). Closes the last
+  # formatting gap alongside buildifier (Bazel) and clang-format (C++).
+  cmake_format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install gersemi
+        run: pip install gersemi==0.27.7
+      - name: Check CMake formatting
+        run: gersemi --check eta_hsm tests/consumer
+
   # GCC 16 / C++26 reflection toolchain (ADR-0001). Runs inside an ubuntu:26.04
   # container because that is the first image shipping g++-16.
   cmake_tests:
@@ -53,6 +68,32 @@ jobs:
           cmake -S tests/consumer -B build/consumer -G Ninja -DCMAKE_PREFIX_PATH="$PWD/build/install"
           cmake --build build/consumer
           ./build/consumer/consumer
+
+  # Same GCC 16 / C++26 container as cmake_tests (ADR-0001 — no native multi-OS),
+  # but the GTest suite is built with -fsanitize=address,undefined to catch
+  # out-of-bounds on the fixed-capacity table storage and UB in the dispatch /
+  # LCA exit-entry chain. -fno-sanitize-recover=all makes any finding fail the run.
+  sanitizers:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            g++-16 gcc-16 cmake ninja-build make git ca-certificates
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-16
+      - name: Build and test under ASan + UBSan
+        run: |
+          cmake -S eta_hsm -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -g -O1" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          cmake --build build
+          ctest --test-dir build --output-on-failure
 
   bazel_tests:
     runs-on: ubuntu-latest

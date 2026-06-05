@@ -1,0 +1,5 @@
+# gersemi: CMake formatter config (issue 0011).
+# Teach gersemi the project's custom command so it formats — rather than warns
+# about — invocations of it. The definition lives in the tests CMakeLists.
+definitions:
+  - eta_hsm/tests/CMakeLists.txt

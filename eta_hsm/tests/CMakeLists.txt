@@ -2,64 +2,47 @@ include(FetchContent)
 
 # GTest is the only test framework (the parallel catch_tests are retired).
 find_package(GTest QUIET)
-if (NOT GTest_FOUND)
-    FetchContent_Declare(googletest
+if(NOT GTest_FOUND)
+    FetchContent_Declare(
+        googletest
         GIT_REPOSITORY https://github.com/google/googletest.git
         GIT_TAG v1.17.0
     )
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)  # keep GTest out of EtaHsm's install
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE) # keep GTest out of EtaHsm's install
     FetchContent_MakeAvailable(googletest)
-endif ()
+endif()
 
 include(GoogleTest)
 
 add_executable(reflection_smoke_test reflection_smoke_test.cpp)
-target_link_libraries(reflection_smoke_test
-    PRIVATE
-        EtaHsm::eta_hsm
-        GTest::gtest_main
+target_link_libraries(
+    reflection_smoke_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
 )
 gtest_discover_tests(reflection_smoke_test)
 
 add_executable(enum_reflection_test enum_reflection_test.cpp)
-target_link_libraries(enum_reflection_test
-    PRIVATE
-        EtaHsm::eta_hsm
-        GTest::gtest_main
+target_link_libraries(
+    enum_reflection_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
 )
 gtest_discover_tests(enum_reflection_test)
 
 add_executable(cd_player_test cd_player_test.cpp)
-target_link_libraries(cd_player_test
-    PRIVATE
-        EtaHsm::eta_hsm
-        GTest::gtest_main
-)
+target_link_libraries(cd_player_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(cd_player_test)
 
 add_executable(nested_test nested_test.cpp)
-target_link_libraries(nested_test
-    PRIVATE
-        EtaHsm::eta_hsm
-        GTest::gtest_main
-)
+target_link_libraries(nested_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(nested_test)
 
 add_executable(during_test during_test.cpp)
-target_link_libraries(during_test
-    PRIVATE
-        EtaHsm::eta_hsm
-        GTest::gtest_main
-)
+target_link_libraries(during_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(during_test)
 
 add_executable(validator_test validator_test.cpp)
-target_link_libraries(validator_test
-    PRIVATE
-        EtaHsm::eta_hsm
-        GTest::gtest_main
-)
+target_link_libraries(validator_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(validator_test)
 
 # ----------------------------------------------------------------------------
@@ -82,9 +65,29 @@ function(eta_add_negcompile_test name case pattern)
     )
 endfunction()
 
-eta_add_negcompile_test(validator_negcompile_no_top         1 "no Top State declared")
-eta_add_negcompile_test(validator_negcompile_missing_parent 2 "State B has undeclared parent C")
-eta_add_negcompile_test(validator_negcompile_initial_child  3 "not one of its children")
-eta_add_negcompile_test(validator_negcompile_bad_target     4 "targets undeclared State C")
-eta_add_negcompile_test(validator_negcompile_unwired        5 "enumerator B is not wired into the tree")
-eta_add_negcompile_test(validator_negcompile_duplicate      6 "without distinct Guards")
+eta_add_negcompile_test(validator_negcompile_no_top 1 "no Top State declared")
+eta_add_negcompile_test(
+    validator_negcompile_missing_parent
+    2
+    "State B has undeclared parent C"
+)
+eta_add_negcompile_test(
+    validator_negcompile_initial_child
+    3
+    "not one of its children"
+)
+eta_add_negcompile_test(
+    validator_negcompile_bad_target
+    4
+    "targets undeclared State C"
+)
+eta_add_negcompile_test(
+    validator_negcompile_unwired
+    5
+    "enumerator B is not wired into the tree"
+)
+eta_add_negcompile_test(
+    validator_negcompile_duplicate
+    6
+    "without distinct Guards"
+)

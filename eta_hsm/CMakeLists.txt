@@ -7,11 +7,13 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    message(WARNING
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(
+        WARNING
         "eta_hsm v2 is supported only on GCC 16+ (P2996 reflection). "
-        "Configuring with '${CMAKE_CXX_COMPILER_ID}' is unsupported.")
-endif ()
+        "Configuring with '${CMAKE_CXX_COMPILER_ID}' is unsupported."
+    )
+endif()
 
 # ----------------------------------------------------------------------------
 # eta_hsm: header-only INTERFACE library.
@@ -20,14 +22,17 @@ add_library(eta_hsm INTERFACE)
 add_library(EtaHsm::eta_hsm ALIAS eta_hsm)
 
 # Headers are referenced repo-root-relative, e.g. #include "eta_hsm/reflect/...".
-target_include_directories(eta_hsm INTERFACE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>"
-    "$<INSTALL_INTERFACE:include>"
+target_include_directories(
+    eta_hsm
+    INTERFACE
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>"
+        "$<INSTALL_INTERFACE:include>"
 )
 target_compile_features(eta_hsm INTERFACE cxx_std_26)
 # Reflection (P2996) is opt-in on GCC; consumers of the headers need it too.
-target_compile_options(eta_hsm INTERFACE
-    "$<$<CXX_COMPILER_ID:GNU>:-freflection>"
+target_compile_options(
+    eta_hsm
+    INTERFACE "$<$<CXX_COMPILER_ID:GNU>:-freflection>"
 )
 
 # ----------------------------------------------------------------------------
@@ -37,9 +42,12 @@ include(CTest)
 include(CMakePackageConfigHelpers)
 
 install(TARGETS eta_hsm EXPORT EtaHsmTargets)
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/reflect"
-        DESTINATION include/eta_hsm
-        FILES_MATCHING PATTERN "*.hpp")
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/reflect"
+    DESTINATION include/eta_hsm
+    FILES_MATCHING
+    PATTERN "*.hpp"
+)
 
 set(ConfigPackageLocation lib/cmake/EtaHsm)
 
@@ -48,24 +56,28 @@ write_basic_package_version_file(
     VERSION ${EtaHsm_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
-configure_file(cmake/EtaHsmConfig.cmake
+configure_file(
+    cmake/EtaHsmConfig.cmake
     "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfig.cmake"
     COPYONLY
 )
 
 # Export for find_package() from both the build tree and an install tree.
-export(EXPORT EtaHsmTargets
+export(
+    EXPORT EtaHsmTargets
     FILE "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmTargets.cmake"
     NAMESPACE EtaHsm::
 )
-install(EXPORT EtaHsmTargets
+install(
+    EXPORT EtaHsmTargets
     FILE EtaHsmTargets.cmake
     NAMESPACE EtaHsm::
     DESTINATION ${ConfigPackageLocation}
 )
-install(FILES
-    cmake/EtaHsmConfig.cmake
-    "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfigVersion.cmake"
+install(
+    FILES
+        cmake/EtaHsmConfig.cmake
+        "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfigVersion.cmake"
     DESTINATION ${ConfigPackageLocation}
     COMPONENT Devel
 )
@@ -73,6 +85,6 @@ install(FILES
 # ----------------------------------------------------------------------------
 # Tests (GTest only).
 # ----------------------------------------------------------------------------
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
-endif ()
+endif()
