@@ -1,0 +1,25 @@
+#! /bin/bash
+# Build the eta_hsm v2 toolchain image (GCC 16 / C++26) and run a command in it.
+#
+#   ./docker_build                      # just (re)build the image
+#   ./docker_build <cmd...>             # run <cmd> in the workspace
+#
+# Examples:
+#   ./docker_build cmake -S eta_hsm -B build && ./docker_build cmake --build build
+#   ./docker_build bazel test //...
+set -euo pipefail
+
+readonly IMAGE=eta_hsm-toolchain
+readonly THIS_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+docker build -t "${IMAGE}" "${THIS_DIR}"
+
+if [[ $# -eq 0 ]]; then
+  exit 0
+fi
+
+exec docker run --rm \
+  -v "${THIS_DIR}":/src/workspace \
+  -w /src/workspace \
+  "${IMAGE}" \
+  "$@"

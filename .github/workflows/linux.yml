@@ -4,9 +4,9 @@ on: [push, pull_request]
 
 jobs:
   python_linting:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -16,32 +16,62 @@ jobs:
           flake8 python --count --max-complexity=25 --max-line-length=127 --statistics
 
   cpp_linting:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run clang-format style check for C++ files
-        uses: jidicula/clang-format-action@v4.11.0
+        uses: jidicula/clang-format-action@v4.13.0
         with:
-          clang-format-version: '14'
+          clang-format-version: '21'  # understands C++26 reflection (^^) syntax
           check-path: 'eta_hsm'
           exclude-regex: ''
 
-  unit_tests:
-    runs-on: ubuntu-22.04
+  # GCC 16 / C++26 reflection toolchain (ADR-0001). Runs inside an ubuntu:26.04
+  # container because that is the first image shipping g++-16.
+  cmake_tests:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
     timeout-minutes: 30
-    defaults:
-      run:
-        shell: bash
     steps:
-      - uses: actions/checkout@v3
-      - name: CMake
+      - uses: actions/checkout@v4
+      - name: Install toolchain
         run: |
-          mkdir build
-          cmake -S eta_hsm -B build
-          ls build/_deps
-      - name: Build
-        working-directory: build
-        run: make
-      - name: Run cpp unit tests
-        working-directory: build
-        run: ctest --output-on-failure
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            g++-16 gcc-16 cmake ninja-build make git ca-certificates
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-16
+      - name: Build and test (CMake)
+        run: |
+          cmake -S eta_hsm -B build -G Ninja
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+      - name: find_package(EtaHsm) consumer
+        # All scratch nested under build/ (git-ignored) so nothing leaks into the tree.
+        run: |
+          cmake --install build --prefix "$PWD/build/install"
+          cmake -S tests/consumer -B build/consumer -G Ninja -DCMAKE_PREFIX_PATH="$PWD/build/install"
+          cmake --build build/consumer
+          ./build/consumer/consumer
+
+  bazel_tests:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    timeout-minutes: 30
+    env:
+      CC: gcc-16
+      CXX: g++-16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            g++-16 gcc-16 git ca-certificates curl python3
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-16
+          curl -fsSL -o /usr/local/bin/bazel \
+            https://github.com/bazelbuild/bazelisk/releases/download/v1.25.0/bazelisk-linux-amd64
+          chmod +x /usr/local/bin/bazel
+      - name: Test (Bazel)
+        run: bazel test //... --test_output=errors

@@ -1,25 +1,12 @@
 load("@aspect_rules_py//py:defs.bzl", "py_library")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
+# Header-only HSM library (v2). Headers are referenced repo-root-relative,
+# e.g. #include "eta_hsm/reflect/reflection_smoke.hpp".
 cc_library(
     name = "eta_hsm",
-    srcs = [
-        "AutoLoggedStateMachine.cpp",
-        "AutoLoggedStateMachine.hpp",
-        "Hsm.cpp",
-        "Hsm.hpp",
-        "Hsm-inl.hpp",
-    ],
-    hdrs = [
-        "AutoLoggedStateMachine.hpp",
-        "Hsm.hpp",
-        "Hsm-inl.hpp",
-    ],
+    hdrs = glob(["reflect/*.hpp"]),
     visibility = ["//visibility:public"],
-    deps = [
-        "//eta_hsm/utils",
-        "@com_github_quicknir_wise_enum//:wise_enum",
-    ],
 )
 
 py_library(

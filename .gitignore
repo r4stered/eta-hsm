@@ -5,3 +5,5 @@ bazel-out
 bazel-src
 bazel-testlogs
 bazel-*
+docs/
+CONTEXT.md

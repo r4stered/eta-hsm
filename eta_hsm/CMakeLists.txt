@@ -1,107 +1,78 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.28)
 
-project(EtaHsm VERSION 1.0.0 LANGUAGES CXX)
-include_directories(${CMAKE_SOURCE_DIR}/..)  # Support absolute imports
+project(EtaHsm VERSION 2.0.0 LANGUAGES CXX)
 
-# Default to C++17
-if (NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
+# Single C++26 baseline (ADR-0001). No extensions, no fallback.
+set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(WARNING
+        "eta_hsm v2 is supported only on GCC 16+ (P2996 reflection). "
+        "Configuring with '${CMAKE_CXX_COMPILER_ID}' is unsupported.")
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif ()
+# ----------------------------------------------------------------------------
+# eta_hsm: header-only INTERFACE library.
+# ----------------------------------------------------------------------------
+add_library(eta_hsm INTERFACE)
+add_library(EtaHsm::eta_hsm ALIAS eta_hsm)
 
+# Headers are referenced repo-root-relative, e.g. #include "eta_hsm/reflect/...".
+target_include_directories(eta_hsm INTERFACE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>"
+    "$<INSTALL_INTERFACE:include>"
+)
+target_compile_features(eta_hsm INTERFACE cxx_std_26)
+# Reflection (P2996) is opt-in on GCC; consumers of the headers need it too.
+target_compile_options(eta_hsm INTERFACE
+    "$<$<CXX_COMPILER_ID:GNU>:-freflection>"
+)
+
+# ----------------------------------------------------------------------------
+# Install + find_package(EtaHsm) export.
+# ----------------------------------------------------------------------------
 include(CTest)
-include(FetchContent)
-include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 
-find_package(GTest)
-if(GTest_FOUND)
-    message("Found previously installed googletest library")
-else()
-    message("Did not find previously installed googletest library, will download...")
-    FetchContent_Declare(googletest
-            GIT_REPOSITORY https://github.com/google/googletest.git
-            GIT_TAG v1.14.0
-    )
-    # For Windows: Prevent overriding the parent project's compiler/linker settings
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-endif()
-
-# TODO: replace shenanigans below with find_package()
-# find_package(WiseEnum REQUIRED)
-if(EXISTS "/usr/local/include/wise_enum/wise_enum.h")
-    message("Found previously installed wise_enum library")
-    include_directories(/usr/local/include/wise_enum)
-else()
-    message("Did not find previously installed wise_enum library, will download...")
-    FetchContent_Declare(WiseEnum
-            GIT_REPOSITORY https://github.com/quicknir/wise_enum.git
-            GIT_TAG master
-    )
-    FetchContent_MakeAvailable(WiseEnum)
-    # TODO: revise wise_enum include solution
-    # Note: fetching as 'wise_enum' allows including using 'wise_enum/wise_enum.h'
-    FetchContent_Populate(wise-enum-include
-            GIT_REPOSITORY https://github.com/quicknir/wise_enum.git
-            SOURCE_DIR "${FETCHCONTENT_BASE_DIR}/wise_enum"
-    )
-    include_directories(SYSTEM ${FETCHCONTENT_BASE_DIR})
-endif()
-
-add_library(eta_hsm
-    Hsm.cpp
-    AutoLoggedStateMachine.cpp
-)
-generate_export_header(eta_hsm)
-install(TARGETS eta_hsm  EXPORT EtaHsmTargets
-        DESTINATION lib)
-install(
-    FILES
-        Hsm.hpp
-        Hsm-inl.hpp
-        AutoLoggedStateMachine.hpp
-    DESTINATION include/eta_hsm
-)
-
-write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfigVersion.cmake"
-        VERSION ${EtaHsm_VERSION}
-        COMPATIBILITY AnyNewerVersion
-)
-
-export(EXPORT EtaHsmTargets
-        FILE "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmTargets.cmake"
-        NAMESPACE EtaHsm::
-)
-configure_file(cmake/EtaHsmConfig.cmake
-        "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfig.cmake"
-        COPYONLY
-)
+install(TARGETS eta_hsm EXPORT EtaHsmTargets)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/reflect"
+        DESTINATION include/eta_hsm
+        FILES_MATCHING PATTERN "*.hpp")
 
 set(ConfigPackageLocation lib/cmake/EtaHsm)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfigVersion.cmake"
+    VERSION ${EtaHsm_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+configure_file(cmake/EtaHsmConfig.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfig.cmake"
+    COPYONLY
+)
+
+# Export for find_package() from both the build tree and an install tree.
+export(EXPORT EtaHsmTargets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmTargets.cmake"
+    NAMESPACE EtaHsm::
+)
 install(EXPORT EtaHsmTargets
-    FILE
-        EtaHsmTargets.cmake
-    NAMESPACE
-        EtaHsm::
-    DESTINATION
-        ${ConfigPackageLocation}
+    FILE EtaHsmTargets.cmake
+    NAMESPACE EtaHsm::
+    DESTINATION ${ConfigPackageLocation}
 )
-install(
-        FILES
-        cmake/EtaHsmConfig.cmake
-        "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfigVersion.cmake"
-        DESTINATION
-        ${ConfigPackageLocation}
-        COMPONENT
-        Devel
+install(FILES
+    cmake/EtaHsmConfig.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/EtaHsmConfigVersion.cmake"
+    DESTINATION ${ConfigPackageLocation}
+    COMPONENT Devel
 )
 
-
-add_subdirectory(examples)
-add_subdirectory(tests)
-add_subdirectory(utils)
+# ----------------------------------------------------------------------------
+# Tests (GTest only).
+# ----------------------------------------------------------------------------
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif ()
