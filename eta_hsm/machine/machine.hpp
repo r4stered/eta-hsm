@@ -12,6 +12,7 @@
 #include <meta>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "eta_hsm/machine/hsm.hpp"
 
@@ -37,13 +38,16 @@ consteval bool hook_named(std::meta::info m, std::string_view prefix, std::strin
     return std::meta::has_identifier(m) && std::meta::identifier_of(m) == std::string_view{want};
 }
 
-// Call host.<Prefix>_<Name>() for the State `s`, where <Name> is s's enumerator
-// identifier -- but only if the Host actually declares that member. Both the
-// State match and the member detection are resolved at compile time by expanding
-// over the enumerators and the Host's members (P2996 + expansion statements);
-// states with no matching hook expand to nothing.
-template <fixed_string Prefix, class Host, class StateEnum>
-void run_hook(Host& host, StateEnum s)
+// Call host.<Prefix>_<Name>(args...) for the State `s`, where <Name> is s's
+// enumerator identifier -- but only if the Host actually declares that member and
+// it is callable with `args`. Both the State match and the member detection are
+// resolved at compile time by expanding over the enumerators and the Host's
+// members (P2996 + expansion statements); states with no matching hook expand to
+// nothing. `args` lets the During tick forward an Input to stateUpdate_<Name>;
+// entry/exit/during pass none. A name match whose arity does not fit `args` is
+// skipped (the requires-guard), so a hook is never called with the wrong shape.
+template <fixed_string Prefix, class Host, class StateEnum, class... Args>
+void run_hook(Host& host, StateEnum s, Args&&... args)
 {
     template for (constexpr std::meta::info ev :
                   std::define_static_array(std::meta::enumerators_of(^^StateEnum))) {
@@ -53,7 +57,9 @@ void run_hook(Host& host, StateEnum s)
                               std::meta::members_of(^^Host, std::meta::access_context::current()))) {
                 if constexpr (std::meta::is_function(m) && !std::meta::is_special_member_function(m)) {
                     if constexpr (hook_named(m, Prefix.view(), name)) {
-                        (host.[:m:])();
+                        if constexpr (requires { (host.[:m:])(std::forward<Args>(args)...); }) {
+                            (host.[:m:])(std::forward<Args>(args)...);
+                        }
                     }
                 }
             }
@@ -232,6 +238,24 @@ public:
             }
             handler = parent_of(handler);
         }
+    }
+
+    // Run the During tick for the current Leaf State, independent of any Event:
+    // call the Host's during_<Name>() hook for the State the machine rests in, if
+    // it declares one. No Transition runs and no Exit/Entry fires -- the tick
+    // touches only the current Leaf, never an ancestor. A Leaf whose Host has no
+    // during hook does nothing.
+    void during() { detail::run_hook<"during">(host_, current_); }
+
+    // The input-consuming During tick: call the Host's stateUpdate_<Name>(input)
+    // hook for the current Leaf, forwarding `input`. Like during() it runs only
+    // the current Leaf's hook with no Transition; a Leaf whose Host has no
+    // matching stateUpdate hook (or whose hook does not accept this input) does
+    // nothing. `Input` is deduced, so the Host names whatever parameter type fits.
+    template <class Input>
+    void during(const Input& input)
+    {
+        detail::run_hook<"stateUpdate">(host_, current_, input);
     }
 
     // True if `ancestor` is the current Leaf or one of its ancestors. Every Leaf

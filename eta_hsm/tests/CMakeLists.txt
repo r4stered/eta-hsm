@@ -45,3 +45,11 @@ target_link_libraries(nested_test
         GTest::gtest_main
 )
 gtest_discover_tests(nested_test)
+
+add_executable(during_test during_test.cpp)
+target_link_libraries(during_test
+    PRIVATE
+        EtaHsm::eta_hsm
+        GTest::gtest_main
+)
+gtest_discover_tests(during_test)
