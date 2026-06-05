@@ -45,6 +45,26 @@ target_link_libraries(your_target PRIVATE EtaHsm::eta_hsm)
 The imported target propagates C++26 and `-freflection`, so consumers don't
 set them by hand. A minimal consumer lives in [`tests/consumer`](tests/consumer).
 
+## Enum reflection
+
+[`eta_hsm/reflect/enum_reflection.hpp`](eta_hsm/reflect/enum_reflection.hpp)
+gives reflection over any plain `enum class` via `std::meta`, replacing
+`wise_enum` for name/count/value queries:
+
+```cpp
+#include "eta_hsm/reflect/enum_reflection.hpp"
+
+enum class Color { Red, Green, Blue };
+
+eta_hsm::enum_count<Color>();        // 3
+eta_hsm::enum_values<Color>();       // std::array<Color, 3>, declaration order
+eta_hsm::enum_name(Color::Red);      // std::optional{"Red"}
+eta_hsm::enum_name((Color)99);       // std::nullopt
+```
+
+All three are usable in `constexpr`/`consteval` contexts; sentinel enumerators
+(e.g. `eNone`/`eTop`) are reported like any other.
+
 ## Build (Bazel)
 
 ```bash
@@ -58,7 +78,10 @@ bazel test //...
 Tests use **GoogleTest** only. The reflection smoke test
 ([`eta_hsm/tests/reflection_smoke_test.cpp`](eta_hsm/tests/reflection_smoke_test.cpp))
 proves the toolchain compiles and runs P2996 reflection under both build
-systems.
+systems, and
+[`enum_reflection_test.cpp`](eta_hsm/tests/enum_reflection_test.cpp)
+covers the public enum reflection utility (names, counts, values, sentinels,
+non-`int` underlying types, and compile-time use).
 
 ## Using v1
 
