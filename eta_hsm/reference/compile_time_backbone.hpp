@@ -78,9 +78,8 @@ constexpr std::string_view ctName(E v)
 // outcomes track the reference's. `fault` corrupts the reference plan (None = the
 // faithful interpreter), the seam the planted-divergence build-failure test drives.
 template <auto Table, class State, class EventEnum, class Host>
-constexpr bool ctDifferentialStep(const TableView<State, EventEnum, Host>& view,
-                                  const Reached<State, EventEnum>& r, EventEnum e, const Host& guardHost,
-                                  Fault fault, CtReport& rep)
+constexpr bool ctDifferentialStep(const TableView<State, EventEnum, Host>& view, const Reached<State, EventEnum>& r,
+                                  EventEnum e, const Host& guardHost, Fault fault, CtReport& rep)
 {
     using Obs = RecordingObserver<State>;
 

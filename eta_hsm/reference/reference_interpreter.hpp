@@ -332,7 +332,7 @@ struct Reached {
 // State no Transition can reach (e.g. an orphaned Leaf) never appears.
 template <class StateEnum, class EventEnum, class Host>
 constexpr std::vector<Reached<StateEnum, EventEnum>> reachable(const TableView<StateEnum, EventEnum, Host>& view,
-                                                              const Host& guardHost)
+                                                               const Host& guardHost)
 {
     constexpr auto events = eta_hsm::enum_values<EventEnum>();
     std::vector<Reached<StateEnum, EventEnum>> out;

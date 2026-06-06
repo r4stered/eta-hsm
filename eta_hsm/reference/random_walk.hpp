@@ -243,8 +243,7 @@ std::vector<WalkStep<EventEnum>> shrink(std::vector<WalkStep<EventEnum>> walk, P
         if (walk.size() > 1)
         {
             std::size_t const mid = walk.size() / 2;
-            std::vector<WalkStep<EventEnum>> first(walk.begin(),
-                                                   walk.begin() + static_cast<std::ptrdiff_t>(mid));
+            std::vector<WalkStep<EventEnum>> first(walk.begin(), walk.begin() + static_cast<std::ptrdiff_t>(mid));
             std::vector<WalkStep<EventEnum>> second(walk.begin() + static_cast<std::ptrdiff_t>(mid), walk.end());
             if (stillReproduces(first))
             {

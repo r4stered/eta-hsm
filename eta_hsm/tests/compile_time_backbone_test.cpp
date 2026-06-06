@@ -8,12 +8,13 @@
 // build-failure check -- a planted divergence that MUST fail to compile, naming
 // the offending (State, Event) -- lives in compile_time_backbone_negcompile.cpp.
 
+#include "eta_hsm/reference/compile_time_backbone.hpp"
+
 #include <gtest/gtest.h>
 
 #include "eta_hsm/examples/cd_player/cd_player.hpp"
 #include "eta_hsm/examples/nested/nested.hpp"
 #include "eta_hsm/machine/machine.hpp"
-#include "eta_hsm/reference/compile_time_backbone.hpp"
 #include "eta_hsm/reference/reference_interpreter.hpp"
 
 namespace eta_hsm::reference {
