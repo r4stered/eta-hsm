@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <deque>
 #include <functional>
+#include <optional>
 #include <queue>
 #include <vector>
 
@@ -38,19 +39,17 @@ public:
     /// How many events are in the bucket?
     size_t size() { return mStorage.size(); }
 
-    /// Simplified accessor that removes an event from the bucket and returns it.
-    Event getEvent()
+    /// Simplified accessor that removes an event from the bucket and returns it,
+    /// or std::nullopt when the bucket is empty.
+    std::optional<Event> getEvent()
     {
         if (!empty())
         {
-            Event evt = mStorage.front();  // make a local copy
+            Event evt = mStorage.front();  // copy before pop
             mStorage.pop_front();
             return evt;
         }
-        else
-        {
-            return Event::eNone;  // assuming there is an eNone element
-        }
+        return std::nullopt;
     }
 
     /// Direct access to underlying deque.
@@ -74,7 +73,6 @@ private:
 ///        down the list of enums an event shows up, the HIGHER priority it is.
 ///        We change this by giving std::greater<T> as the comparator so that events closer to
 ///        the top of the list have higher priority.
-///        Event::eNone should be at the bottom of the list so that it has the lowest possible priority.
 template <typename Event>
 class PrioritizedEventBucket : public EventBucket<Event> {
 public:
@@ -90,19 +88,17 @@ public:
     /// How many events are in the bucket?
     size_t size() const { return mStorage.size(); }
 
-    /// Simplified accessor that removes an event from the bucket and returns it.
-    Event getEvent()
+    /// Simplified accessor that removes an event from the bucket and returns it,
+    /// or std::nullopt when the bucket is empty.
+    std::optional<Event> getEvent()
     {
         if (!empty())
         {
-            Event evt = mStorage.top();  // make a local copy
+            Event evt = mStorage.top();  // copy before pop
             mStorage.pop();
             return evt;
         }
-        else
-        {
-            return Event::eNone;  // assuming there is an eNone element
-        }
+        return std::nullopt;
     }
 
     /// Peek the highest-priority event without removing it. Peeking an empty

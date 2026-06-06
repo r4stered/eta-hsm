@@ -1,7 +1,7 @@
 // Behavioral tests for the EventBucket family (eta_hsm/utils/EventBucket.hpp).
 // Tests exercise the public interface directly: OrderedEventBucket preserves insertion order,
 // PrioritizedEventBucket orders by enumerator priority, and the removing accessor
-// (getEvent) reports eNone when drained, while top() requires a non-empty bucket.
+// (getEvent) returns std::nullopt when drained, while top() requires a non-empty bucket.
 // Exercises only the public surface and observable behavior.
 #include <gtest/gtest.h>
 
@@ -11,9 +11,8 @@ namespace eta_hsm {
 namespace utils {
 namespace tests {
 
-// Lower enumerator value == higher priority for PrioritizedEventBucket; eNone
-// sits at the bottom so it is the lowest priority and the empty-bucket sentinel.
-enum class Event { eNone, eHigh, eMid, eLow };
+// Lower enumerator value == higher priority for PrioritizedEventBucket.
+enum class Event { eHigh, eMid, eLow };
 
 TEST(EventBucketTest, OrderedBucketPreservesInsertionOrder)
 {
@@ -31,14 +30,14 @@ TEST(EventBucketTest, OrderedBucketPreservesInsertionOrder)
     EXPECT_TRUE(bucket.empty());
 }
 
-TEST(EventBucketTest, OrderedBucketReturnsNoneWhenDrained)
+TEST(EventBucketTest, OrderedBucketReturnsNulloptWhenDrained)
 {
     OrderedEventBucket<Event> bucket;
-    EXPECT_EQ(bucket.getEvent(), Event::eNone);
+    EXPECT_EQ(bucket.getEvent(), std::nullopt);
 
     bucket.addEvent(Event::eMid);
     EXPECT_EQ(bucket.getEvent(), Event::eMid);
-    EXPECT_EQ(bucket.getEvent(), Event::eNone);
+    EXPECT_EQ(bucket.getEvent(), std::nullopt);
 }
 
 TEST(EventBucketTest, PrioritizedBucketOrdersByEnumeratorPriority)
@@ -58,10 +57,10 @@ TEST(EventBucketTest, PrioritizedBucketOrdersByEnumeratorPriority)
     EXPECT_TRUE(bucket.empty());
 }
 
-TEST(EventBucketTest, PrioritizedBucketGetEventReturnsNoneWhenEmpty)
+TEST(EventBucketTest, PrioritizedBucketGetEventReturnsNulloptWhenEmpty)
 {
     PrioritizedEventBucket<Event> bucket;
-    EXPECT_EQ(bucket.getEvent(), Event::eNone);
+    EXPECT_EQ(bucket.getEvent(), std::nullopt);
 }
 
 // top() carries a pre(!empty()) precondition: peeking an empty bucket has no
