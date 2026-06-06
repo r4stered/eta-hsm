@@ -1,2 +1,2 @@
-# Targets are presently defined in eta_hsm/BUILD and eta_hsm/utils/BUILD
-# A top-level BUILD file is needed to be able to import this repo in projects
+# Targets are defined in eta_hsm/BUILD and eta_hsm/tests/BUILD.
+# A top-level BUILD file is needed to be able to import this repo in projects.

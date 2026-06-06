@@ -1,124 +1,56 @@
 include(FetchContent)
 
-# GTest is the only test framework (the parallel catch_tests are retired).
-find_package(GTest QUIET)
-if(NOT GTest_FOUND)
-    FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG v1.17.0
-    )
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE) # keep GTest out of EtaHsm's install
-    FetchContent_MakeAvailable(googletest)
-endif()
+# GTest is the only test framework. Prefer a system package; otherwise fetch it.
+# SYSTEM keeps its headers out of the strict-warning net our targets compile under.
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.17.0
+    FIND_PACKAGE_ARGS NAMES GTest
+    SYSTEM
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE) # keep GTest out of EtaHsm's install
+FetchContent_MakeAvailable(googletest)
 
 include(GoogleTest)
 
-add_executable(reflection_smoke_test reflection_smoke_test.cpp)
-target_link_libraries(
-    reflection_smoke_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(reflection_smoke_test)
+# A GTest executable built under the strict eta_hsm warning set (eta_hsm_warnings),
+# from a single <name>_test.cpp, registered for ctest discovery.
+function(eta_add_test name)
+    add_executable(${name}_test ${name}_test.cpp)
+    target_link_libraries(
+        ${name}_test
+        PRIVATE EtaHsm::eta_hsm eta_hsm_warnings GTest::gtest_main
+    )
+    gtest_discover_tests(${name}_test)
+endfunction()
 
-add_executable(enum_reflection_test enum_reflection_test.cpp)
-target_link_libraries(
-    enum_reflection_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(enum_reflection_test)
+eta_add_test(reflection_smoke)
+eta_add_test(enum_reflection)
+eta_add_test(cd_player)
+eta_add_test(nested)
+eta_add_test(reference_interpreter)
+eta_add_test(backbone)
+eta_add_test(example_control)
+eta_add_test(during)
+eta_add_test(auto_logged_machine)
+eta_add_test(event_bucket)
+eta_add_test(timer)
+eta_add_test(time_tracker)
+eta_add_test(validator)
+eta_add_test(builder_deduction)
+eta_add_test(scaling_probe)
+eta_add_test(footprint)
+eta_add_test(v1_parity)
 
-add_executable(cd_player_test cd_player_test.cpp)
-target_link_libraries(cd_player_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(cd_player_test)
-
-add_executable(nested_test nested_test.cpp)
-target_link_libraries(nested_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(nested_test)
-
-add_executable(reference_interpreter_test reference_interpreter_test.cpp)
-target_link_libraries(
-    reference_interpreter_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(reference_interpreter_test)
-
-add_executable(backbone_test backbone_test.cpp)
-target_link_libraries(backbone_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(backbone_test)
-
-add_executable(example_control_test example_control_test.cpp)
-target_link_libraries(
-    example_control_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(example_control_test)
-
-add_executable(diagram_test diagram_test.cpp)
-target_link_libraries(diagram_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
+eta_add_test(diagram)
 # The repo root lets the README-sync test find README.md (it is skipped when this
 # is undefined, e.g. under Bazel).
 target_compile_definitions(
     diagram_test
     PRIVATE ETA_REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../.."
 )
-gtest_discover_tests(diagram_test)
-
-add_executable(during_test during_test.cpp)
-target_link_libraries(during_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(during_test)
-
-add_executable(auto_logged_machine_test auto_logged_machine_test.cpp)
-target_link_libraries(
-    auto_logged_machine_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(auto_logged_machine_test)
-
-add_executable(event_bucket_test event_bucket_test.cpp)
-target_link_libraries(
-    event_bucket_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(event_bucket_test)
-
-add_executable(timer_test timer_test.cpp)
-target_link_libraries(timer_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(timer_test)
-
-add_executable(time_tracker_test time_tracker_test.cpp)
-target_link_libraries(
-    time_tracker_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(time_tracker_test)
-
-add_executable(validator_test validator_test.cpp)
-target_link_libraries(validator_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(validator_test)
-
-add_executable(builder_deduction_test builder_deduction_test.cpp)
-target_link_libraries(
-    builder_deduction_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(builder_deduction_test)
-
-add_executable(scaling_probe_test scaling_probe_test.cpp)
-target_link_libraries(
-    scaling_probe_test
-    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
-)
-gtest_discover_tests(scaling_probe_test)
-
-add_executable(footprint_test footprint_test.cpp)
-target_link_libraries(footprint_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(footprint_test)
-
-add_executable(v1_parity_test v1_parity_test.cpp)
-target_link_libraries(v1_parity_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
-gtest_discover_tests(v1_parity_test)
 
 # ----------------------------------------------------------------------------
 # Build-failure harness for the compile-time validator. Each case

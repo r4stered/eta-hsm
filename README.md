@@ -118,24 +118,29 @@ A Docker image pins this toolchain for local builds:
 
 ```bash
 ./docker_build                                    # build the image
-./docker_build cmake -S eta_hsm -B build -G Ninja # configure
-./docker_build cmake --build build                # build
-./docker_build ctest --test-dir build --output-on-failure
+# configure, build, and test via the CMake presets (run from the source dir):
+./docker_build bash -c 'cd eta_hsm && cmake --preset default && cmake --build --preset default && ctest --preset default'
 ./docker_build bazel test //...                   # or via Bazel
 ```
 
 ## Build (CMake)
 
+The presets live in [`eta_hsm/CMakePresets.json`](eta_hsm/CMakePresets.json) and
+write to a `build/` directory at the repo root:
+
 ```bash
-cmake -S eta_hsm -B build -G Ninja
-cmake --build build
-ctest --test-dir build --output-on-failure
+cd eta_hsm
+cmake --preset default          # configure
+cmake --build --preset default  # build
+ctest --preset default          # test
 ```
+
+A `sanitizer` preset builds the suite under ASan + UBSan (`cmake --preset sanitizer`).
 
 eta_hsm installs as a header-only package with a `find_package` export:
 
 ```bash
-cmake --install build --prefix /your/prefix
+cmake --install ../build --prefix /your/prefix
 ```
 
 ```cmake

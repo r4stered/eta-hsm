@@ -3,7 +3,7 @@
 
 #include <array>
 #include <chrono>
-#include <type_traits>
+#include <cstddef>
 
 #include "eta_hsm/reflect/enum_reflection.hpp"
 
@@ -22,33 +22,34 @@ public:
     /// Record the time upon entry into each state.
     void enter(StateEnum state)
     {
-        mEntryTimes.at(static_cast<Underlying>(state)) = mClock.now();
-        mInState.at(static_cast<Underlying>(state)) = true;
+        mEntryTimes.at(index(state)) = mClock.now();
+        mInState.at(index(state)) = true;
     }
 
     /// Record that we have exited each state so that we can avoid returning incorrect durations
     /// for states that we are no longer in.
-    void exit(StateEnum state) { mInState.at(static_cast<Underlying>(state)) = false; }
+    void exit(StateEnum state) { mInState.at(index(state)) = false; }
 
     /// Query how long we have been in any particular state.
     /// If we are not currently in that state, return 0.
     Duration timeInState(StateEnum state) const
     {
-        if (!mInState.at(static_cast<Underlying>(state)))
+        if (!mInState.at(index(state)))
         {
             return std::chrono::milliseconds{0};
         }
-        return mClock.now() - mEntryTimes.at(static_cast<Underlying>(state));
+        return mClock.now() - mEntryTimes.at(index(state));
     }
 
 private:
     const LocalClock& mClock;
 
-    /// Index the per-state arrays by the enum's underlying integer value.
-    using Underlying = typename std::underlying_type<StateEnum>::type;
+    /// Index the per-state arrays by the enum's value, narrowed to the array size_type.
+    /// The contiguous-from-zero contract below guarantees the value is in range.
+    static constexpr std::size_t index(StateEnum state) { return static_cast<std::size_t>(state); }
 
     // TimeTracker indexes mEntryTimes/mInState by the raw StateEnum value
-    // (static_cast<Underlying>(state) in enter/exit/timeInState) and sizes them by
+    // (index(state) in enter/exit/timeInState) and sizes them by
     // enum_count<StateEnum>() -- the enumerator COUNT, not max+1. So StateEnum must
     // be contiguous from 0; otherwise a state would index past the array. Make that
     // assumption a compile-time contract.

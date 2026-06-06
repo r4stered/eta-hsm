@@ -45,10 +45,11 @@ jobs:
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
       - name: Build and test (CMake)
+        working-directory: eta_hsm
         run: |
-          cmake -S eta_hsm -B build -G Ninja
-          cmake --build build
-          ctest --test-dir build --output-on-failure
+          cmake --preset default
+          cmake --build --preset default
+          ctest --preset default
       - name: find_package(EtaHsm) consumer
         # All scratch nested under build/ (git-ignored) so nothing leaks into the tree.
         run: |
@@ -75,13 +76,11 @@ jobs:
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
       - name: Build and test under ASan + UBSan
+        working-directory: eta_hsm
         run: |
-          cmake -S eta_hsm -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -g -O1" \
-            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-          cmake --build build
-          ctest --test-dir build --output-on-failure
+          cmake --preset sanitizer
+          cmake --build --preset sanitizer
+          ctest --preset sanitizer
 
   bazel_tests:
     runs-on: ubuntu-latest

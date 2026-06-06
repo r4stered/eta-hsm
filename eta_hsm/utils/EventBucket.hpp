@@ -14,6 +14,8 @@ namespace utils {
 template <typename Event>
 class EventBucket {
 public:
+    virtual ~EventBucket() = default;
+
     /// All that is exposed publicly is the ability to add events.
     virtual void addEvent(Event evt) = 0;
 };

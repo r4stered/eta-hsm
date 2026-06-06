@@ -5,7 +5,7 @@
 #   ./docker_build <cmd...>             # run <cmd> in the workspace
 #
 # Examples:
-#   ./docker_build cmake -S eta_hsm -B build && ./docker_build cmake --build build
+#   ./docker_build bash -c 'cd eta_hsm && cmake --preset default && cmake --build --preset default'
 #   ./docker_build bazel test //...
 set -euo pipefail
 

@@ -375,7 +375,6 @@ struct BackboneReport {
 template <auto Table>
 BackboneReport runBackbone(const typename decltype(Table)::HostType& guardHost = {})
 {
-    using State = typename decltype(Table)::State;
     using Event = typename decltype(Table)::Event;
 
     auto const view = makeTableView<Table>();

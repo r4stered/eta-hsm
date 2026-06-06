@@ -1,6 +1,6 @@
-load("@rules_cc//cc:defs.bzl", "cc_test")
+load("//eta_hsm:copts.bzl", "eta_cc_test")
 
-cc_test(
+eta_cc_test(
     name = "reflection_smoke_test",
     srcs = ["reflection_smoke_test.cpp"],
     deps = [
@@ -9,7 +9,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "enum_reflection_test",
     srcs = ["enum_reflection_test.cpp"],
     deps = [
@@ -18,7 +18,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "cd_player_test",
     srcs = ["cd_player_test.cpp"],
     deps = [
@@ -27,7 +27,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "nested_test",
     srcs = ["nested_test.cpp"],
     deps = [
@@ -36,7 +36,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "reference_interpreter_test",
     srcs = ["reference_interpreter_test.cpp"],
     deps = [
@@ -45,7 +45,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "backbone_test",
     srcs = ["backbone_test.cpp"],
     deps = [
@@ -54,7 +54,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "example_control_test",
     srcs = ["example_control_test.cpp"],
     deps = [
@@ -63,7 +63,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "diagram_test",
     srcs = [
         "diagram_test.cpp",
@@ -78,7 +78,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "during_test",
     srcs = ["during_test.cpp"],
     deps = [
@@ -87,7 +87,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "auto_logged_machine_test",
     srcs = ["auto_logged_machine_test.cpp"],
     deps = [
@@ -96,7 +96,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "event_bucket_test",
     srcs = ["event_bucket_test.cpp"],
     deps = [
@@ -105,7 +105,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "timer_test",
     srcs = ["timer_test.cpp"],
     deps = [
@@ -114,7 +114,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "time_tracker_test",
     srcs = ["time_tracker_test.cpp"],
     deps = [
@@ -123,7 +123,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "validator_test",
     srcs = ["validator_test.cpp"],
     deps = [
@@ -132,7 +132,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "builder_deduction_test",
     srcs = ["builder_deduction_test.cpp"],
     deps = [
@@ -141,7 +141,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "scaling_probe_test",
     srcs = ["scaling_probe_test.cpp"],
     deps = [
@@ -150,7 +150,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "footprint_test",
     srcs = ["footprint_test.cpp"],
     deps = [
@@ -159,7 +159,7 @@ cc_test(
     ],
 )
 
-cc_test(
+eta_cc_test(
     name = "v1_parity_test",
     srcs = [
         "v1_parity_test.cpp",

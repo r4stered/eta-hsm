@@ -36,6 +36,40 @@ target_compile_options(
 )
 
 # ----------------------------------------------------------------------------
+# Strict warnings for the targets we compile. This INTERFACE library carries the
+# flags so they reach only what links it (tests, tools, the consumer) and never
+# ride along on the public eta_hsm headers handed to downstream consumers. It is
+# deliberately not part of the install/export set.
+# ----------------------------------------------------------------------------
+add_library(eta_hsm_warnings INTERFACE)
+add_library(EtaHsm::warnings ALIAS eta_hsm_warnings)
+
+set(_eta_warning_flags
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wshadow
+    -Wnon-virtual-dtor
+    -Woverloaded-virtual
+    -Wnull-dereference
+    -Wdouble-promotion
+    -Wimplicit-fallthrough
+    -Wcast-align
+    -Wunused
+    -Wformat=2
+    -Wconversion
+    -Wsign-conversion
+    -Wold-style-cast
+    -Wuseless-cast
+    -Wsign-promo
+    -Werror
+)
+target_compile_options(
+    eta_hsm_warnings
+    INTERFACE "$<$<CXX_COMPILER_ID:GNU>:${_eta_warning_flags}>"
+)
+
+# ----------------------------------------------------------------------------
 # Install + find_package(EtaHsm) export.
 # ----------------------------------------------------------------------------
 include(CTest)
@@ -89,7 +123,7 @@ install(
 # constexpr table. cd_player is the demonstrator (its diagram has a golden test).
 # ----------------------------------------------------------------------------
 add_executable(cd_player_diagram diagram/cd_player_diagram_main.cpp)
-target_link_libraries(cd_player_diagram PRIVATE eta_hsm)
+target_link_libraries(cd_player_diagram PRIVATE eta_hsm eta_hsm_warnings)
 
 # ----------------------------------------------------------------------------
 # Tests (GTest only).
