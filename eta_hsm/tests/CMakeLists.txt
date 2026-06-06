@@ -33,6 +33,18 @@ eta_add_test(nested)
 eta_add_test(reference_interpreter)
 eta_add_test(backbone)
 eta_add_test(compile_time_backbone)
+# This TU's correctness payload is entirely `static_assert`s: it runs production
+# dispatch and the reference interpreter inside constant evaluation, with only a
+# trivial runtime EXPECT echoing the proven counts. Under -fsanitize the compiler
+# instruments the dispatch path's pointer-to-member null checks (`action ==
+# nullptr`, `guard == nullptr`), and an instrumented pointer-to-member comparison
+# is not a constant expression -- so the consteval differential fails to compile
+# under the sanitizer build. There is no runtime here for a sanitizer to find UB
+# in (the runtime dispatch path is covered under sanitizers by backbone_test /
+# random_walk_test / cd_player_test), so exclude just this TU from instrumentation.
+# -fno-sanitize=all is a no-op in the non-sanitizer configs, where no -fsanitize is
+# set; in the sanitizer config it follows the global flag and wins.
+target_compile_options(compile_time_backbone_test PRIVATE -fno-sanitize=all)
 eta_add_test(random_walk)
 eta_add_test(example_control)
 eta_add_test(during)
