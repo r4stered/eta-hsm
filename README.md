@@ -1,5 +1,7 @@
 # eta-hsm
 
+[![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/r4stered/626da4c11b8f9f89663a02451ffa396b/raw/eta-hsm-coverage.json)](https://github.com/r4stered/eta-hsm/actions/workflows/linux.yml)
+
 A C++ library for defining and running **hierarchical state machines** (HSMs).
 
 > **v2 is a clean break.** eta_hsm v2 is a header-only library built on

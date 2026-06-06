@@ -23,6 +23,18 @@
         "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -g -O1",
         "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
       }
+    },
+    {
+      "name": "coverage",
+      "displayName": "gcov coverage",
+      "description": "Debug build under GCC's --coverage instrumentation; tools/coverage.sh reduces the .gcda/.gcno into a line-coverage %.",
+      "inherits": "default",
+      "binaryDir": "${sourceParentDir}/build/coverage",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "--coverage -g -O0",
+        "CMAKE_EXE_LINKER_FLAGS": "--coverage"
+      }
     }
   ],
   "buildPresets": [
@@ -33,6 +45,10 @@
     {
       "name": "sanitizer",
       "configurePreset": "sanitizer"
+    },
+    {
+      "name": "coverage",
+      "configurePreset": "coverage"
     }
   ],
   "testPresets": [
@@ -46,6 +62,13 @@
     {
       "name": "sanitizer",
       "configurePreset": "sanitizer",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "coverage",
+      "configurePreset": "coverage",
       "output": {
         "outputOnFailure": true
       }

@@ -18,6 +18,7 @@ RUN apt-get update \
         ca-certificates \
         curl \
         python3 \
+        gcovr \
  && rm -rf /var/lib/apt/lists/*
 
 # Make g++-16/gcc-16 the default cc/c++ so plain `cmake`/`bazel` pick them up.

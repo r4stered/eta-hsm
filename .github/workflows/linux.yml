@@ -82,6 +82,81 @@ jobs:
           cmake --build --preset sanitizer
           ctest --preset sanitizer
 
+  # Same GCC 16 / C++26 container as cmake_tests (ADR-0001). Builds the GTest
+  # suite under GCC's --coverage instrumentation and reduces the .gcda/.gcno with
+  # gcovr into a line-coverage %. CMake path only, mirroring the sanitizers job;
+  # `bazel coverage` is out of scope.
+  coverage:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            g++-16 gcc-16 cmake ninja-build make git ca-certificates gcovr
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-16
+      - name: Measure coverage
+        # All scratch nested under build/coverage/ (git-ignored). Tee the gcovr
+        # summary aside so the later steps can lift the % out of it.
+        run: bash tools/coverage.sh 2>&1 | tee /tmp/coverage.log
+      - name: Publish coverage to job summary
+        run: |
+          {
+            echo "### Test coverage"
+            echo
+            echo '```'
+            grep -E '^(lines|functions|branches):' /tmp/coverage.log
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/coverage/report/
+      - name: Extract coverage percentage
+        id: cov
+        run: |
+          pct=$(grep -oE '^lines: [0-9.]+%' /tmp/coverage.log | grep -oE '[0-9.]+' | head -1)
+          if [ -z "$pct" ]; then
+            echo "::error::could not parse a line-coverage % from the gcovr summary"
+            exit 1
+          fi
+          band=${pct%.*}
+          if   [ "$band" -ge 90 ]; then color=brightgreen
+          elif [ "$band" -ge 80 ]; then color=green
+          elif [ "$band" -ge 70 ]; then color=yellowgreen
+          elif [ "$band" -ge 60 ]; then color=yellow
+          elif [ "$band" -ge 50 ]; then color=orange
+          else color=red
+          fi
+          echo "pct=${pct}" >>"$GITHUB_OUTPUT"
+          echo "color=${color}" >>"$GITHUB_OUTPUT"
+      # Publish the % to a gist that backs the README's shields.io endpoint badge.
+      # The write is an idempotent gist update (not a commit to this repo), so it
+      # never races other pushes to v2 and leaves no badge commits in history.
+      # Only on a direct push to v2 -- PRs from forks have no access to the secret.
+      #
+      # One-time setup (done on the fork):
+      #   1. Create a public gist with a file named eta-hsm-coverage.json.
+      #   2. Create a PAT with only the `gist` scope; add it as the repo secret
+      #      GIST_SECRET.
+      #   3. Set the gist id as the repo variable GIST_ID, and put it in the badge
+      #      URL in README.md.
+      - name: Update coverage badge gist
+        if: github.event_name == 'push' && github.ref == 'refs/heads/v2'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ vars.GIST_ID }}
+          filename: eta-hsm-coverage.json
+          label: coverage
+          message: ${{ steps.cov.outputs.pct }}%
+          color: ${{ steps.cov.outputs.color }}
+
   bazel_tests:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
