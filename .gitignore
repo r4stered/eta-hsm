@@ -9,3 +9,4 @@ docs/
 CONTEXT.md
 CLAUDE.md
 tools/.lintenv/
+.claude/
