@@ -14,8 +14,6 @@
 // the root, an artifact v2's constructor does not reproduce. Parity is asserted on
 // the per-Dispatch transcript, which is the machine's observable running behavior.
 
-#include "eta_hsm/log/auto_logged_machine.hpp"
-
 #include <gtest/gtest.h>
 
 #include <string>
@@ -24,6 +22,7 @@
 
 #include "eta_hsm/examples/cd_player/cd_player.hpp"
 #include "eta_hsm/examples/example_control/example_control.hpp"
+#include "eta_hsm/log/auto_logged_machine.hpp"
 
 namespace eta_hsm {
 namespace {
@@ -65,15 +64,15 @@ TEST(V1Parity, CdPlayerReproducesV1Transcript)
     logger.lines.clear();  // drop the bootstrap construction chain
 
     using E = examples::cd_player::Event;
-    m.dispatch(E::Play);        // Stopped -> Playing
-    m.dispatch(E::Pause);       // Playing -> Paused
-    m.dispatch(E::EndPause);    // Paused -> Playing
-    m.dispatch(E::Stop);        // Playing -> Stopped
-    m.dispatch(E::OpenClose);   // Stopped -> Open
-    m.dispatch(E::OpenClose);   // Open -> Empty
+    m.dispatch(E::Play);  // Stopped -> Playing
+    m.dispatch(E::Pause);  // Playing -> Paused
+    m.dispatch(E::EndPause);  // Paused -> Playing
+    m.dispatch(E::Stop);  // Playing -> Stopped
+    m.dispatch(E::OpenClose);  // Stopped -> Open
+    m.dispatch(E::OpenClose);  // Open -> Empty
     m.dispatch(E::CdDetected);  // Empty -> Stopped
-    m.dispatch(E::Hammer);      // Stopped defers to Top -> Playing (Top Exited + re-entered)
-    m.dispatch(E::OpenClose);   // Playing -> Open (stop_and_open)
+    m.dispatch(E::Hammer);  // Stopped defers to Top -> Playing (Top Exited + re-entered)
+    m.dispatch(E::OpenClose);  // Playing -> Open (stop_and_open)
 
     EXPECT_EQ(transcript(logger), kGolden);
 }
@@ -98,9 +97,9 @@ TEST(V1Parity, ExampleControlReproducesV1Transcript)
     using E = examples::example_control::Event;
     m.dispatch(E::DrinkWhiskey);  // Sober, BAC below threshold: defers to Awake, no line
     m.dispatch(E::DrinkWhiskey);  // crosses the threshold: Sober -> Drunk
-    m.dispatch(E::LookAtWatch);   // Drunk Internal (keep partying): no line
-    m.dispatch(E::DrinkBeer);     // Drunk defers to Awake's BAC-only handler: no line
-    m.dispatch(E::PassOut);       // deferred to Awake: cross-level Drunk -> Unconscious
+    m.dispatch(E::LookAtWatch);  // Drunk Internal (keep partying): no line
+    m.dispatch(E::DrinkBeer);  // Drunk defers to Awake's BAC-only handler: no line
+    m.dispatch(E::PassOut);  // deferred to Awake: cross-level Drunk -> Unconscious
 
     EXPECT_EQ(transcript(logger), kGolden);
 }
