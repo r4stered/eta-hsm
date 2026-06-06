@@ -48,6 +48,24 @@ target_link_libraries(
 )
 gtest_discover_tests(auto_logged_machine_test)
 
+add_executable(event_bucket_test event_bucket_test.cpp)
+target_link_libraries(
+    event_bucket_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
+)
+gtest_discover_tests(event_bucket_test)
+
+add_executable(timer_test timer_test.cpp)
+target_link_libraries(timer_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
+gtest_discover_tests(timer_test)
+
+add_executable(time_tracker_test time_tracker_test.cpp)
+target_link_libraries(
+    time_tracker_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
+)
+gtest_discover_tests(time_tracker_test)
+
 add_executable(validator_test validator_test.cpp)
 target_link_libraries(validator_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(validator_test)

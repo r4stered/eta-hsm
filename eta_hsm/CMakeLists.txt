@@ -43,7 +43,9 @@ include(CMakePackageConfigHelpers)
 
 install(TARGETS eta_hsm EXPORT EtaHsmTargets)
 install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/reflect"
+    DIRECTORY
+        "${CMAKE_CURRENT_SOURCE_DIR}/reflect"
+        "${CMAKE_CURRENT_SOURCE_DIR}/utils"
     DESTINATION include/eta_hsm
     FILES_MATCHING
     PATTERN "*.hpp"

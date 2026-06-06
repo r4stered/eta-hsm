@@ -9,6 +9,7 @@ cc_library(
         "reflect/*.hpp",
         "machine/*.hpp",
         "log/*.hpp",
+        "utils/*.hpp",
         "examples/**/*.hpp",
         "probe/*.hpp",
     ]),

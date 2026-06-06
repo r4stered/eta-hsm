@@ -55,6 +55,33 @@ cc_test(
 )
 
 cc_test(
+    name = "event_bucket_test",
+    srcs = ["event_bucket_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "timer_test",
+    srcs = ["timer_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "time_tracker_test",
+    srcs = ["time_tracker_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "validator_test",
     srcs = ["validator_test.cpp"],
     deps = [
