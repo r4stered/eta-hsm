@@ -1,4 +1,4 @@
-// Behavioral tests for the maximal compile-time validator (issue 0006).
+// Behavioral tests for the maximal compile-time validator.
 //
 // The validator's *logic* is exercised here through its public entry point,
 // eta_hsm::validate<Table>(), which returns a ValidationReport without firing any

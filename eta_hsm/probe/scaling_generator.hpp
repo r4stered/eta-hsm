@@ -1,6 +1,6 @@
 #pragma once
 
-// Synthetic machine generator for the compile-time scaling probe (issue 0012).
+// Synthetic machine generator for the compile-time scaling probe.
 //
 // The PRD (0001) flags one primary risk: the v2 core leans on P2996 reflection
 // and P1306 expansion statements, which are compile-time-heavy -- and the spike
@@ -9,12 +9,12 @@
 // timed for a range of N (and hierarchy depth) spanning 7 -> 45 and a little
 // beyond. See tools/scaling_probe.sh for the sweep harness.
 //
-// Per the issue, this is a compile-time `constexpr` generator, not source
-// emission: `generate<N, Depth>()` returns an Hsm table value, instantiated as
+// This is a compile-time `constexpr` generator, not source emission:
+// `generate<N, Depth>()` returns an Hsm table value, instantiated as
 // `Machine<generate<N, Depth>()>` and swept by recompiling with -DPROBE_N=… .
 // No `.cpp` emission and no Python -- it reuses the same `Hsm{}` builder and
-// `enum_reflection` the real machines use, so the subjects it produces are also
-// free large-scale correctness subjects for issue 0016.
+// `enum_reflection` the real machines use, so the subjects it produces double as
+// free large-scale correctness subjects for a future differential-testing harness.
 
 #include <array>
 #include <cstddef>

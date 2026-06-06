@@ -1,5 +1,5 @@
 // Behavioral tests for the During tick and the auto-detected During/StateUpdate
-// Host hooks (issue 0005). The During tick runs the current Leaf State's activity
+// Host hooks. The During tick runs the current Leaf State's activity
 // independent of any Event: `during()` calls the Host's during_<Name>() hook,
 // `during(input)` calls stateUpdate_<Name>(input). Both are detected by the same
 // reflection mechanism as entry/exit -- a Host writes only the hooks it needs.

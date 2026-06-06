@@ -1,4 +1,4 @@
-// Behavioral tests for the auto-logging layer (issue 0007). They drive an
+// Behavioral tests for the auto-logging layer. They drive an
 // AutoLoggedMachine -- a Machine wrapped with a pluggable Logger -- through its
 // public interface and assert the exact human-readable lines a scripted run
 // emits at each verbosity level, captured by a test Logger. The line wording and

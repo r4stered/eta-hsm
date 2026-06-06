@@ -1,6 +1,6 @@
 #pragma once
 
-// Runtime machine holder for the v2 data-oriented core (issue 0002). Binds a
+// Runtime machine holder for the v2 data-oriented core. Binds a
 // `constexpr` table (built with Hsm, see hsm.hpp) as a non-type template
 // argument so Dispatch is generated at compile time -- no virtual indirection,
 // no heap allocation on the event path. Holds the current Leaf State and a
@@ -23,7 +23,7 @@ namespace detail {
 // The default Machine observer: a no-op. Every notify is an empty inline
 // template, so a Machine<Table> with no logging observer compiles to exactly
 // what it did before the observer seam existed -- no member of substance, no
-// runtime cost (issue 0007). A real observer (the auto-logging layer's
+// runtime cost. A real observer (the auto-logging layer's
 // LoggingObserver) supplies the same members with bodies.
 struct NullObserver {
     template <class State>
@@ -235,7 +235,7 @@ consteval auto transitions()
 
 // `Observer` is an opt-in seam for watching the machine run: it is notified at
 // the same points the Exit/Action/Entry/init chain already touches, so a logging
-// layer (issue 0007) can render Transitions, Entries, Exits, and inits without
+// layer can render Transitions, Entries, Exits, and inits without
 // re-deriving the traversal. It defaults to NullObserver, which compiles away --
 // every existing `Machine<Table>` is unchanged.
 template <auto Table, class Observer = detail::NullObserver>
@@ -247,7 +247,7 @@ public:
 
     // Validation runs automatically the moment a machine is instantiated: an
     // ill-formed table fails this static_assert with a message naming the
-    // offending element (issue 0006), rather than surfacing as a deep template
+    // offending element, rather than surfacing as a deep template
     // error later. A well-formed table compiles away to nothing.
     static constexpr ValidationReport kValidation = validate<Table>();
     static_assert(kValidation.ok, kValidation);

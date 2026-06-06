@@ -1,5 +1,5 @@
 // Single translation unit the scaling-probe harness compiles once per (N, Depth)
-// point (issue 0012). It instantiates `Machine<generate<N, Depth>()>` and drives
+// point. It instantiates `Machine<generate<N, Depth>()>` and drives
 // it through a full dispatch so the heavy parts -- the validator, the P1306
 // dispatch expansion over every Transition, and the reflection-detected hooks --
 // are all instantiated and code-generated. The harness recompiles this file with

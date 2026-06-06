@@ -1,4 +1,4 @@
-// Build-failure harness for the contiguous-from-zero enum contract (issue 0008).
+// Build-failure harness for the contiguous-from-zero enum contract.
 //
 // StaticTimerBank and TimeTracker size per-enumerator std::arrays by
 // enum_count<E>() and index them by the RAW enum value (static_cast to the

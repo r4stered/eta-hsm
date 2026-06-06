@@ -4,11 +4,11 @@
 // value produced by a fluent builder (ADR-0002). The table is the single source
 // of truth that the generated Dispatch (machine.hpp) reads at compile time.
 //
-// This slice supports full HIERARCHY (issue 0004): composite States nested to
+// This slice supports full HIERARCHY: composite States nested to
 // any depth, cross-level Transitions that run the ordered Exit/Entry chain
 // through the least-common-ancestor, recursive Initial-Substate forwarding, and
 // parent deferral up the whole tree. Transitions are (Source, Event, Target)
-// with an optional Action and an optional Guard (issue 0003); .internal declares
+// with an optional Action and an optional Guard; .internal declares
 // an Internal Transition (Action only, no State change); .local declares a Local
 // Transition (it does not Exit/re-enter the shared ancestor in parent/child
 // cases). .on declares an External Transition, the default.
@@ -161,7 +161,7 @@ struct Hsm {
     }
 
     // Mark `s` as deliberately not-yet-wired, opting it out of the exhaustiveness
-    // check (issue 0006). Use while a machine is under construction so a planned
+    // check. Use while a machine is under construction so a planned
     // enumerator with no State row yet does not fail validation.
     constexpr Hsm unwired(StateEnum s) const
     {

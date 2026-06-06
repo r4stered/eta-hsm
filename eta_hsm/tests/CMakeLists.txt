@@ -78,7 +78,7 @@ target_link_libraries(
 gtest_discover_tests(scaling_probe_test)
 
 # ----------------------------------------------------------------------------
-# Build-failure harness for the compile-time validator (issue 0006). Each case
+# Build-failure harness for the compile-time validator. Each case
 # compiles a deliberately ill-formed machine (validator_negcompile.cpp, one CASE
 # per compile) and passes only if the build fails with a diagnostic naming the
 # offending element. These are pure ctest cases with no build target: the script
@@ -161,7 +161,7 @@ eta_add_negcompile_test_src(
     "RUNHOOK_CASE"
 )
 
-# Contiguous-from-zero enum contract (issue 0008): StaticTimerBank / TimeTracker
+# Contiguous-from-zero enum contract: StaticTimerBank / TimeTracker
 # index per-enumerator arrays by the raw enum value, so a gapped / above-zero
 # enum must fail to compile (static_assert) rather than throw .at() at runtime.
 eta_add_negcompile_test_src(

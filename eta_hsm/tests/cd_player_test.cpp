@@ -1,5 +1,5 @@
-// Behavioral tests for the cd_player example on the v2 data-oriented core
-// (issue 0002). Tests drive the machine through its public interface --
+// Behavioral tests for the cd_player example on the v2 data-oriented core.
+// Tests drive the machine through its public interface --
 // dispatch / identify / isInSubstateOf -- and assert observable State sequences
 // and effects, never internal table layout or generated-dispatch structure.
 

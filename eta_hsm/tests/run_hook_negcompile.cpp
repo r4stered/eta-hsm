@@ -1,5 +1,5 @@
-// Build-failure harness for the run_hook hook-detection contract (issue 0005
-// follow-up). The fixed-arity hooks -- entry_<Name>, exit_<Name>, during_<Name>
+// Build-failure harness for the run_hook hook-detection contract. The
+// fixed-arity hooks -- entry_<Name>, exit_<Name>, during_<Name>
 // -- are always called with an EMPTY argument pack, so a Host member that matches
 // the <prefix>_<Name> name but takes the WRONG arity/type is a programmer error
 // and MUST be a hard compile error, not a silent no-op. (Only the variadic

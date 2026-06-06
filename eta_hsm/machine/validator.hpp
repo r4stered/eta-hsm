@@ -1,6 +1,6 @@
 #pragma once
 
-// Maximal compile-time validator for a machine table (issue 0006). A single
+// Maximal compile-time validator for a machine table. A single
 // entry point -- validate<Table>() -- runs every well-formedness check over the
 // constexpr table (built with Hsm, see hsm.hpp) and returns a ValidationReport.
 // The report carries a P2741 user-generated message naming the offending element,
@@ -295,7 +295,7 @@ consteval ValidationReport validate()
     // takes whichever row was declared FIRST (the first-match policy in machine.hpp).
     // First-declared-wins is therefore the tiebreaker when two Guards both hold -- a
     // deliberate, documented policy, not a checked invariant. (A future reachability
-    // check could tighten this; see issue 0016's differential harness.)
+    // check over the Guards could tighten this to logical exclusivity.)
     for (std::size_t i = 0; i < Table.transitionCount; ++i)
     {
         for (std::size_t j = i + 1; j < Table.transitionCount; ++j)

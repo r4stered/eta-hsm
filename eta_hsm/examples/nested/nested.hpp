@@ -1,6 +1,6 @@
 #pragma once
 
-// A multi-level example used to exercise the hierarchy slice (issue 0004):
+// A multi-level example used to exercise the hierarchy slice:
 // composite States nested two deep, cross-level Transitions, parent deferral to
 // an ancestor handler, and the External-vs-Local distinction on a parent/child
 // Transition. The whole machine is one `constexpr` table, like cd_player.

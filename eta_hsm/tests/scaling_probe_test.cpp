@@ -1,12 +1,12 @@
-// Behavioral tests for the scaling-probe generator (issue 0012).
+// Behavioral tests for the scaling-probe generator.
 //
 // The probe's deliverable is a *measurement* -- a compile-time/peak-memory curve
 // against State count (tools/scaling_probe.sh). But the curve is only meaningful
 // if the machines being timed are real, well-formed machines, so this is what the
 // test pins: that generate<N, Depth>() emits a *valid* N-State machine that the
 // existing Machine core accepts and can actually dispatch. These same large
-// machines are reused by issue 0016 as correctness subjects, so "valid at scale"
-// is the contract.
+// machines double as correctness subjects for a future differential-testing
+// harness, so "valid at scale" is the contract.
 //
 // generate() is consteval, so the structural properties (State count, validity)
 // are asserted at compile time; the dispatch behavior is asserted at runtime.

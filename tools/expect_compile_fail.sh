@@ -5,8 +5,8 @@
 # compile fails AND the compiler output matches the expected offender pattern.
 # This is how a negative case becomes an ordinary passing test: ctest runs this
 # script per case. It backs two harnesses today -- the compile-time validator
-# (issue 0006, validator_negcompile.cpp / -DVALIDATOR_CASE) and the run_hook
-# hook-detection contract (issue 0005 follow-up, run_hook_negcompile.cpp /
+# (validator_negcompile.cpp / -DVALIDATOR_CASE) and the run_hook
+# hook-detection contract (run_hook_negcompile.cpp /
 # -DRUNHOOK_CASE) -- so it takes the TU and its case macro as optional arguments.
 #
 #   expect_compile_fail.sh <case-number> <expected-egrep-pattern> [src] [macro]

@@ -1,6 +1,6 @@
 #pragma once
 
-// Auto-logging layer for the v2 core (issue 0007): the v2 equivalent of v1's
+// Auto-logging layer for the v2 core: the v2 equivalent of v1's
 // AutoLoggedStateMachine. It wraps a Machine with a pluggable Logger and emits
 // human-readable lines for Transitions, Entries, Exits, and inits, with State and
 // Event names from enum reflection (no wise_enum). The verbosity levels and line

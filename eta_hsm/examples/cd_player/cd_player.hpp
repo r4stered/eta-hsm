@@ -1,6 +1,6 @@
 #pragma once
 
-// The cd_player example, ported onto the v2 data-oriented core (issue 0002).
+// The cd_player example, ported onto the v2 data-oriented core.
 // The whole machine is one `constexpr` table: States with their parent and the
 // Top State's Initial Substate, plus flat (Source, Event, Target) Transitions.
 // There are no `using`-alias State types and no `switch`-body handlers -- the

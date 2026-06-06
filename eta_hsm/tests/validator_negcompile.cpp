@@ -1,4 +1,4 @@
-// Build-failure harness for the maximal compile-time validator (issue 0006).
+// Build-failure harness for the maximal compile-time validator.
 //
 // This translation unit is COMPILED ON PURPOSE TO FAIL: instantiating a Machine
 // over an ill-formed table must reject the program with a static_assert whose
