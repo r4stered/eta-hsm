@@ -1,7 +1,7 @@
-// Behavioral test for TimeTracker (eta_hsm/utils/TimeTracker.hpp), ported from
-// v1 to v2. The state key `TestEnum` is now a plain `enum class` (no wise_enum);
-// TimeTracker sizes its per-state arrays by eta_hsm::enum_count<TestEnum>(), so
-// this also proves the enum_count-based sizing matches the old wise_enum::size.
+// Behavioral test for TimeTracker (eta_hsm/utils/TimeTracker.hpp). The state key
+// `TestEnum` is a plain `enum class`; TimeTracker sizes its per-state arrays by
+// eta_hsm::enum_count<TestEnum>(), so this also proves the enum_count-based
+// sizing is correct.
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -13,8 +13,8 @@ namespace eta_hsm {
 namespace utils {
 namespace tests {
 
-// Plain enum class state key (was WISE_ENUM_CLASS in v1). Its enumerator count
-// sizes TimeTracker's per-state entry-time and in-state arrays.
+// Plain enum class state key. Its enumerator count sizes TimeTracker's
+// per-state entry-time and in-state arrays.
 enum class TestEnum : int64_t { eAlpha, eBravo, eCharlie };
 
 TEST(TimeTrackerTest, TimeTrackerTest)

@@ -1,6 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
-# Header-only HSM library (v2). Headers are referenced repo-root-relative,
+# Header-only HSM library. Headers are referenced repo-root-relative,
 # e.g. #include "eta_hsm/reflect/reflection_smoke.hpp".
 cc_library(
     name = "eta_hsm",

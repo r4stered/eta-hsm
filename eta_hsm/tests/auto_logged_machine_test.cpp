@@ -1,9 +1,8 @@
 // Behavioral tests for the auto-logging layer. They drive an
 // AutoLoggedMachine -- a Machine wrapped with a pluggable Logger -- through its
 // public interface and assert the exact human-readable lines a scripted run
-// emits at each verbosity level, captured by a test Logger. The line wording and
-// verbosity thresholds mirror v1's AutoLoggedStateMachine; State/Event names come
-// from enum reflection (no wise_enum).
+// emits at each verbosity level, captured by a test Logger. State/Event names
+// come from enum reflection.
 
 #include "eta_hsm/log/auto_logged_machine.hpp"
 
@@ -78,9 +77,9 @@ TEST(AutoLoggedMachine, EntryExitLinesAtVerbosityTwo)
 
 // At verbosity 3 a Transition additionally emits an init line for the declared
 // Target and for every Initial Substate it drills through (each right after that
-// State's Entry line), matching v1's logInit. ToB targets the Composite B and
-// drills B -> B1 -> B1a, so B, B1, and B1a each get an init line; the path
-// ancestors entered above the Target (none here) would not.
+// State's Entry line). ToB targets the Composite B and drills B -> B1 -> B1a, so
+// B, B1, and B1a each get an init line; the path ancestors entered above the
+// Target (none here) would not.
 TEST(AutoLoggedMachine, InitLinesAtVerbosityThree)
 {
     CapturingLogger logger;

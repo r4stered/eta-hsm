@@ -1,10 +1,8 @@
 #pragma once
 
-// Auto-logging layer for the v2 core: the v2 equivalent of v1's
-// AutoLoggedStateMachine. It wraps a Machine with a pluggable Logger and emits
+// Auto-logging layer. It wraps a Machine with a pluggable Logger and emits
 // human-readable lines for Transitions, Entries, Exits, and inits, with State and
-// Event names from enum reflection (no wise_enum). The verbosity levels and line
-// wording mirror v1:
+// Event names from enum reflection. The verbosity levels and line wording are:
 //
 //   0  nothing
 //   1  Transitions          "<name> HSM transitioning from <State> to <State> due to <Event>"
@@ -12,7 +10,7 @@
 //   3  + init               "<name> HSM initializing state <State>"
 //
 // The Logger is a template parameter so consumers route lines to their own sink
-// (e.g. a large machine's ROS logger); its sole requirement is a `log(std::string_view)`
+// (e.g. a ROS logger); its sole requirement is a `log(std::string_view)`
 // member that receives one finished line at a time.
 
 #include <string>

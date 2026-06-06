@@ -1,7 +1,6 @@
 // Standalone diagram tool for the cd_player example: include the machine's
 // header and print its diagram, walking the same `constexpr` table the machine
-// runs on so the diagram can never drift from the machine. This is the concrete
-// replacement for the old regex-based Python diagram scraper.
+// runs on so the diagram can never drift from the machine.
 //
 //   cd_player_diagram            # PlantUML (default)
 //   cd_player_diagram --mermaid  # Mermaid stateDiagram-v2

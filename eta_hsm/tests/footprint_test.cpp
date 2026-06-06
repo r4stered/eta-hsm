@@ -1,11 +1,11 @@
-// Structural-footprint guards for the data-oriented core. These pin the
+// Structural-footprint guards for the machine. These pin the
 // properties the README's Performance section boasts, so they cannot silently
 // rot: the machine carries no vtable and no heap-owning state of its own, and a
 // Machine<Table> is exactly its Host plus a single resting-State word (modulo
 // alignment) -- no per-Transition storage, no hidden pointers.
 //
 // The claims are checked at compile time with static_assert; the GTest case
-// exists so the slice runs green under ctest and Bazel and surfaces the measured
+// exists so the checks run under ctest and Bazel and surface the measured
 // sizes when read. The cd_player table is the instantiation subject, as the
 // public example a reader can cross-check against.
 
@@ -60,8 +60,8 @@ static_assert(std::is_trivially_destructible_v<Machine<trivial::plain>>,
               "heap-owning members.");
 static_assert(!std::is_polymorphic_v<Machine<trivial::plain>>);
 
-// The static_asserts above do the work at compile time. This case lets the slice
-// report green under the test runners and prints the measured sizes when run with
+// The static_asserts above do the work at compile time. This case surfaces the
+// checks under the test runners and prints the measured sizes when run with
 // --gtest_print_time / on failure.
 TEST(Footprint, StructuralClaimsHold)
 {

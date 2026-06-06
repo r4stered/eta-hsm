@@ -1,10 +1,10 @@
 #pragma once
 
-// eta_hsm v2 machine description: a state machine is a single `constexpr` table
+// eta_hsm machine description: a state machine is a single `constexpr` table
 // value produced by a fluent builder (ADR-0002). The table is the single source
 // of truth that the generated Dispatch (machine.hpp) reads at compile time.
 //
-// This slice supports full HIERARCHY: composite States nested to
+// The description supports full HIERARCHY: composite States nested to
 // any depth, cross-level Transitions that run the ordered Exit/Entry chain
 // through the least-common-ancestor, recursive Initial-Substate forwarding, and
 // parent deferral up the whole tree. Transitions are (Source, Event, Target)
@@ -18,7 +18,7 @@
 
 namespace eta_hsm {
 
-// Fixed capacities for the builder's constexpr storage. Generous for the spike;
+// Fixed capacities for the builder's constexpr storage. Generously sized;
 // the final table only ever exposes the populated prefix via its counts.
 inline constexpr std::size_t kMaxStates = 64;
 inline constexpr std::size_t kMaxTransitions = 256;

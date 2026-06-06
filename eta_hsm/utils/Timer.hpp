@@ -187,9 +187,7 @@ public:
         }
     }
 
-    /// This is effectively part of the "old" interface to TimerBank.
-    /// It could (should) be private but is still here for the time being because it is used
-    /// by the existing unit tests.
+    /// Could be private, but is public because the unit tests call it directly.
     Event checkForSingleFiredEvent(const std::chrono::time_point<Clock>& now)
     {
         // To avoid interacting with clocks, we will hold the last time value that we have seen.
@@ -287,7 +285,7 @@ private:
                   "GroupEnum must be contiguous from 0 (no gaps, starts at 0).");
 
     // Using a static array with one timer allowed per state. Sized by the GroupEnum's enumerator
-    // count via reflection (replaces the old wise_enum::size<GroupEnum>).
+    // count via reflection.
     std::array<Timer<Traits_>, enum_count<GroupEnum>()> mTimers{};
     /// Keep the "latest" timer value around for future use
     std::chrono::time_point<Clock> mLastTimeValue{};

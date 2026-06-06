@@ -1,4 +1,4 @@
-// Behavioral tests for the hierarchy slice, driven through the
+// Behavioral tests for the State hierarchy, driven through the
 // public interface (dispatch / identify / isInSubstateOf) against a multi-level
 // machine with three Composite States (A, B, B1). They assert the resting Leaf
 // State and the exact ordered Exit/Entry/Action chain a Transition runs -- never

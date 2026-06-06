@@ -1,6 +1,5 @@
 // Behavioral tests for the EventBucket family (eta_hsm/utils/EventBucket.hpp).
-// v1 exercised these only indirectly through StaticTimerBank; here we test the
-// public interface directly: OrderedEventBucket preserves insertion order,
+// Tests exercise the public interface directly: OrderedEventBucket preserves insertion order,
 // PrioritizedEventBucket orders by enumerator priority, and both report eNone
 // when drained. Exercises only the public surface and observable behavior.
 #include <gtest/gtest.h>

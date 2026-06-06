@@ -4,8 +4,8 @@
 // the <prefix>_<Name> name but takes the WRONG arity/type is a programmer error
 // and MUST be a hard compile error, not a silent no-op. (Only the variadic
 // stateUpdate tick is allowed to skip a name-matching hook whose shape does not
-// fit the forwarded Input -- that intentional skip is the whole point of 0005 and
-// is exercised behaviorally by during_test.cpp, not here.)
+// fit the forwarded Input -- that intentional skip is exercised behaviorally by
+// during_test.cpp, not here.)
 //
 // One CASE is selected per compile via -DRUNHOOK_CASE=<n>;
 // tools/expect_compile_fail.sh compiles each case and asserts the build fails
@@ -40,9 +40,8 @@ constexpr auto make_table()
 
 #if RUNHOOK_CASE == 1
 // A fixed-arity entry hook declared with the wrong arity: entry_<Name> is called
-// with no arguments, but this one demands an int. Before the run_hook fix this
-// silently compiled to a no-op (the requires-guard swallowed it); it must now be
-// a hard "no matching function" error at the spliced call.
+// with no arguments, but this one demands an int. This must be a hard "no
+// matching function" error at the spliced call, not a silent no-op.
 struct H {
     void entry_Running(int) {}
 };

@@ -4,8 +4,8 @@
 // enum_count<E>() and index them by the RAW enum value (static_cast to the
 // underlying integer). That is only sound when the enum's enumerators are
 // exactly 0,1,2,...,N-1: a gapped / above-zero enum would index PAST the array.
-// Each class now carries a static_assert(enum_is_contiguous_from_zero<E>()),
-// turning that previously-silent assumption into a hard compile error.
+// Each class carries a static_assert(enum_is_contiguous_from_zero<E>()) that
+// turns that assumption into a hard compile error.
 //
 // One CASE is selected per compile via -DCONTIG_CASE=<n>;
 // tools/expect_compile_fail.sh compiles each case and asserts the build fails

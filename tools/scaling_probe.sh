@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Compile-time scaling probe harness.
 #
-# De-risks the PRD's flagged primary risk: the v2 core leans on P2996 reflection
-# and P1306 expansion statements, which are compile-time-heavy, and the spike is
-# 7 States while a large machine is 45. This sweeps a synthetic N-State machine
+# Measures how build cost scales with State count: the machine leans on P2996
+# reflection and P1306 expansion statements, which are compile-time-heavy. This
+# sweeps a synthetic N-State machine
 # (eta_hsm/probe/scaling_probe_main.cpp, built by generate<N, Depth>()) across a
-# range spanning 7 -> 45 and a little beyond, at two hierarchy depths and two
+# range spanning a small (7-State) machine up to a large (45-State)
+# machine and a little beyond, at two hierarchy depths and two
 # optimization levels, compiling each under GCC 16 with -ftime-report and
 # recording wall-clock compile time and peak GC memory (GGC).
 #
@@ -30,7 +31,7 @@ readonly OUT_DIR="docs/probes"
 readonly CSV="${OUT_DIR}/0012-scaling.csv"
 readonly REPORT="${OUT_DIR}/0012-compile-time-scaling.md"
 
-# Sweep: 7 (the spike) -> 45 (large) and a little beyond, at a flat (Depth 1)
+# Sweep: 7 (small) -> 45 (large) and a little beyond, at a flat (Depth 1)
 # and a nested (Depth 3) shape, under -O0 (frontend + codegen, isolating the
 # reflection/expansion risk) and -O2 (a realistic release build's wall time).
 read -r -a NS <<<"${PROBE_NS:-7 12 16 20 25 30 35 40 45 50 56 60}"
@@ -76,11 +77,11 @@ done
 
 # ---------------------------------------------------------------------------
 # Render the report: per-configuration tables plus a data-driven go/no-go read.
-# The verdict compares the spike (N=7) to large machines (N=45) under -O2 at the deeper
-# shape -- the closest stand-in for a realistic large build -- reporting the growth
-# multipliers and the empirical log-log exponent, then judging against fixed
-# acceptability gates (a large machine compiles in under 10 s and 2 GB, and grows no
-# worse than ~quadratically).
+# The verdict compares a small (N=7) to a large (N=45) machine under
+# -O2 at the deeper shape -- the closest stand-in for a real build -- reporting
+# the growth multipliers and the empirical log-log exponent, then judging against
+# fixed acceptability gates (the large machine compiles in under 10 s
+# and 2 GB, and grows no worse than ~quadratically).
 # ---------------------------------------------------------------------------
 {
     echo "# 0012 — Compile-time scaling probe report"
@@ -101,7 +102,7 @@ done
     echo "**P2996 reflection over the State enum's enumerators** (\`run_hook\` expands"
     echo "over a fixed 64-enumerator \`ProbeState\`, independent of N) — so it sits in"
     echo "the intercept, not the slope. The read is therefore conservative on the"
-    echo "reflection axis: a real large machine declares exactly its own States, so"
+    echo "reflection axis: a real machine declares exactly its own States, so"
     echo "its reflection cost is *no larger* than this fixed baseline. The slope below"
     echo "is the genuine per-State growth."
     echo
@@ -138,16 +139,16 @@ done
             tr  = (t7 > 0) ? t45 / t7 : 0
             mr  = (m7 > 0) ? m45 / m7 : 0
             expn = (t7 > 0 && t45 > 0) ? log(t45/t7) / log(45.0/7.0) : 0
-            printf "Reference shape: **-O2, depth %d** (closest to a realistic large build).\n\n", d
-            printf "- Spike (N=7): **%.2f s**, **%.0f MB**.\n", t7, m7
-            printf "- Large (N=45): **%.2f s**, **%.0f MB** — %.1fx time, %.1fx memory vs the spike.\n", t45, m45, tr, mr
+            printf "Reference shape: **-O2, depth %d** (closest to a real build).\n\n", d
+            printf "- Small (N=7): **%.2f s**, **%.0f MB**.\n", t7, m7
+            printf "- Large (N=45): **%.2f s**, **%.0f MB** — %.1fx time, %.1fx memory vs the small machine.\n", t45, m45, tr, mr
             if (t60 != "") printf "- Beyond (N=60): **%.2f s**, **%.0f MB**.\n", t60, m60
             printf "- Empirical growth exponent (log-log, 7→45): **%.2f** (1.0 = linear, 2.0 = quadratic).\n\n", expn
             pass = (t45 < 10.0 && m45 < 2048.0 && expn < 2.2)
             if (pass)
                 printf "**GO.** A large (45-State) machine compiles in %.2f s using %.0f MB, growing ~N^%.1f — sub-quadratic and well within budget. The reflection + expansion design scales to large machines.\n", t45, m45, expn
             else
-                printf "**NO-GO / CAUTION.** Large compiles in %.2f s using %.0f MB (exponent ~%.1f). This approaches or exceeds the acceptability gates (10 s / 2 GB / N^2.2); the curve shows a wall worth a HITL decision before committing.\n", t45, m45, expn
+                printf "**NO-GO / CAUTION.** The large machine compiles in %.2f s using %.0f MB (exponent ~%.1f). This approaches or exceeds the acceptability gates (10 s / 2 GB / N^2.2); the curve shows a wall worth a HITL decision before committing.\n", t45, m45, expn
         }' "${CSV}"
     echo
     echo "_Acceptability gates: a large machine (N=45) under 10 s wall and 2 GB peak, growth no worse than ~N^2.2._"

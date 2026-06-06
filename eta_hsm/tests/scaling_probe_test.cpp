@@ -38,11 +38,11 @@ TEST(ScalingProbe, EmitsExactlyNStates)
 TEST(ScalingProbe, ValidAcrossRangeAndDepth)
 {
     static_assert(validate<generate<2, 1>()>().ok);  // smallest: Top + one Leaf
-    static_assert(validate<generate<7, 1>()>().ok);  // the spike's size, flat
-    static_assert(validate<generate<7, 2>()>().ok);  // the spike's size, nested
+    static_assert(validate<generate<7, 1>()>().ok);  // small machine, flat
+    static_assert(validate<generate<7, 2>()>().ok);  // small machine, nested
     static_assert(validate<generate<20, 3>()>().ok);
-    static_assert(validate<generate<45, 2>()>().ok);  // a large machine's size
-    static_assert(validate<generate<45, 4>()>().ok);  // a large machine's size, deeper
+    static_assert(validate<generate<45, 2>()>().ok);  // large machine
+    static_assert(validate<generate<45, 4>()>().ok);  // large machine, deeper
     static_assert(validate<generate<60, 3>()>().ok);  // a little beyond a large machine
 
     EXPECT_TRUE((validate<generate<45, 2>()>().ok));
@@ -77,7 +77,7 @@ TEST(ScalingProbe, DepthProducesNesting)
 
 // A large machine instantiates and dispatches: it comes to rest in a
 // Leaf, survives a sweep of every Event, and stays live. Proves the generated
-// table drives the real core, not just that it validates on paper.
+// table drives the real machine, not just that it validates on paper.
 TEST(ScalingProbe, LargeMachineDispatches)
 {
     Machine<generate<45, 2>()> machine;

@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     message(
         WARNING
-        "eta_hsm v2 is supported only on GCC 16+ (P2996 reflection). "
+        "eta_hsm is supported only on GCC 16+ (P2996 reflection). "
         "Configuring with '${CMAKE_CXX_COMPILER_ID}' is unsupported."
     )
 endif()

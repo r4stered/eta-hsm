@@ -14,7 +14,7 @@ namespace {
 
 enum class Color { Red, Green, Blue };
 
-// Mirrors a large machine's enum shape: leading/trailing sentinels around real states.
+// A representative enum shape: leading/trailing sentinels around real states.
 enum class State { eNone, Stopped, Playing, eTop };
 
 // Non-default underlying type with explicit, non-contiguous values, exercising
@@ -56,7 +56,7 @@ TEST(EnumReflection, ValuesYieldsEnumeratorsInDeclarationOrder)
 TEST(EnumReflection, SentinelsAreCountedAndNamedLikeAnyOther)
 {
     // Sentinels participate in the count exactly like real states — this is what
-    // keeps enum_count<E>()-sized arrays matching wise_enum's at the call sites.
+    // keeps enum_count<E>()-sized arrays correctly sized at the call sites.
     EXPECT_EQ(eta_hsm::enum_count<State>(), 4u);
     EXPECT_EQ(eta_hsm::enum_name(State::eNone), "eNone");
     EXPECT_EQ(eta_hsm::enum_name(State::eTop), "eTop");

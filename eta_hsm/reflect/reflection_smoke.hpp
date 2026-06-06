@@ -3,8 +3,8 @@
 // Minimal P2996 reflection helpers used only by the build-baseline smoke test.
 // These exercise `std::meta` so the supported toolchain (GCC 16, -std=c++26
 // -freflection) is proven through both build systems. They are intentionally
-// trivial and will be superseded by the public enum reflection utility
-// (eta_hsm::enum_name / enum_count / enum_values) in a later slice.
+// trivial; the public enum reflection utility lives in
+// eta_hsm/reflect/enum_reflection.hpp (enum_name / enum_count / enum_values).
 
 #include <cstddef>
 #include <meta>

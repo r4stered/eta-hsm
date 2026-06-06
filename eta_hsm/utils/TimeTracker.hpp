@@ -57,7 +57,7 @@ private:
                   "StateEnum must be contiguous from 0 (no gaps, starts at 0).");
 
     /// A list of entry times for each state. Sized by the StateEnum's enumerator count via
-    /// reflection (replaces the old wise_enum::size<StateEnum>).
+    /// reflection.
     std::array<std::chrono::time_point<LocalClock>, enum_count<StateEnum>()> mEntryTimes{};
 
     /// A simple boolean record of whether we are currently in a particular state.

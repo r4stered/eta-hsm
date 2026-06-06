@@ -1,8 +1,8 @@
 // Behavioral tests for Timer / TimerBank / StaticTimerBank
-// (eta_hsm/utils/Timer.hpp), ported from v1 to v2. The group key `State` is now
-// a plain `enum class` (no wise_enum); StaticTimerBank sizes its per-group array
-// by eta_hsm::enum_count<State>(), so this suite is also the behavioral proof
-// that the enum_count-based sizing matches the old wise_enum::size sizing.
+// (eta_hsm/utils/Timer.hpp). The group key `State` is a plain `enum class`;
+// StaticTimerBank sizes its per-group array by eta_hsm::enum_count<State>(), so
+// this suite is also the behavioral proof that the enum_count-based sizing is
+// correct.
 #include "eta_hsm/utils/Timer.hpp"
 
 #include <gtest/gtest.h>
@@ -17,8 +17,8 @@ namespace tests {
 
 enum class Event { eNone, eOne, eTwo, eThree, eMax };
 
-// Plain enum class group key (was WISE_ENUM_CLASS in v1). Its enumerator count
-// is what sizes StaticTimerBank's per-group array.
+// Plain enum class group key. Its enumerator count is what sizes
+// StaticTimerBank's per-group array.
 enum class State : uint32_t { eNone, eRed, eGreen, eBlue };
 
 enum class UniqueId {

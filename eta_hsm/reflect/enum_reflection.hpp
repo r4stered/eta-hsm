@@ -1,7 +1,7 @@
 #pragma once
 
 // Public enum reflection utility over C++26 P2996 reflection (std::meta).
-// Replaces wise_enum for name/count/value queries on a plain `enum class`:
+// Name/count/value queries on a plain `enum class`:
 //
 //   eta_hsm::enum_count<E>()                  -> number of enumerators
 //   eta_hsm::enum_values<E>()                 -> enumerators, declaration order

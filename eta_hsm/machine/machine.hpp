@@ -1,10 +1,10 @@
 #pragma once
 
-// Runtime machine holder for the v2 data-oriented core. Binds a
-// `constexpr` table (built with Hsm, see hsm.hpp) as a non-type template
-// argument so Dispatch is generated at compile time -- no virtual indirection,
-// no heap allocation on the event path. Holds the current Leaf State and a
-// default-constructed Host that Actions and per-State hooks run on.
+// Runtime machine holder. Binds a `constexpr` table (built with Hsm, see
+// hsm.hpp) as a non-type template argument so Dispatch is generated at compile
+// time -- no virtual indirection, no heap allocation on the event path. Holds
+// the current Leaf State and a default-constructed Host that Actions and
+// per-State hooks run on.
 
 #include <algorithm>
 #include <array>
@@ -21,10 +21,9 @@ namespace eta_hsm {
 namespace detail {
 
 // The default Machine observer: a no-op. Every notify is an empty inline
-// template, so a Machine<Table> with no logging observer compiles to exactly
-// what it did before the observer seam existed -- no member of substance, no
-// runtime cost. A real observer (the auto-logging layer's
-// LoggingObserver) supplies the same members with bodies.
+// template, so a Machine<Table> with no logging observer compiles to nothing --
+// no member of substance, no runtime cost. A real observer (the auto-logging
+// layer's LoggingObserver) supplies the same members with bodies.
 struct NullObserver {
     template <class State>
     void onEntry(State)
@@ -93,8 +92,7 @@ void run_hook(Host& host, StateEnum s, Args&&... args)
                     {
                         // Only the variadic stateUpdate tick is allowed to skip a
                         // name-matching hook whose arity does not fit the forwarded
-                        // Input (the intentional skip 0005 introduced). For every
-                        // fixed-arity prefix -- entry/exit/during, always called
+                        // Input. For every fixed-arity prefix -- entry/exit/during, always called
                         // with an EMPTY pack -- a name match whose shape is wrong is
                         // a programmer error, so it must hard-error here rather than
                         // silently no-op and quietly weaken the hook contract.
@@ -233,11 +231,10 @@ consteval auto transitions()
 
 }  // namespace detail
 
-// `Observer` is an opt-in seam for watching the machine run: it is notified at
-// the same points the Exit/Action/Entry/init chain already touches, so a logging
-// layer can render Transitions, Entries, Exits, and inits without
-// re-deriving the traversal. It defaults to NullObserver, which compiles away --
-// every existing `Machine<Table>` is unchanged.
+// `Observer` is a seam for watching the machine run: it is notified at the same
+// points the Exit/Action/Entry/init chain already touches, so a logging layer
+// can render Transitions, Entries, Exits, and inits without re-deriving the
+// traversal. It defaults to NullObserver, which compiles away to no runtime cost.
 template <auto Table, class Observer = detail::NullObserver>
 class Machine {
 public:
@@ -254,8 +251,7 @@ public:
 
     // On construction the machine enters its initial configuration: it runs the
     // Entry hook for Top and for each Initial Substate down to the resting Leaf,
-    // so the machine never sits in a State whose Entry has not run. (v1 achieved
-    // the same by kicking off a Top -> Top self-transition in its constructor.)
+    // so the machine never sits in a State whose Entry has not run.
     Machine() { current_ = enter_initial_chain(); }
 
     // Same, but with a caller-supplied Observer in place. The Observer must be
@@ -424,8 +420,8 @@ private:
             observer_.onEntry(path[depth]);
         }
         // The Target is initialized once it has been entered, before drilling into
-        // its Initial Substates -- this is the init seam v1 logged for the Target
-        // (it fires even when the Target stayed active and was not re-entered).
+        // its Initial Substates -- this init seam fires even when the Target stayed
+        // active and was not re-entered.
         observer_.onInit(target);
 
         // Drill the Target into its Initial Substates until a Leaf, firing each

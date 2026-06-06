@@ -2,12 +2,11 @@
 
 // Synthetic machine generator for the compile-time scaling probe.
 //
-// The PRD (0001) flags one primary risk: the v2 core leans on P2996 reflection
-// and P1306 expansion statements, which are compile-time-heavy -- and the spike
-// is only 7 States while a large machine is 45. This generator exists to *measure* that
-// risk: it emits a valid N-State machine table at compile time so a build can be
-// timed for a range of N (and hierarchy depth) spanning 7 -> 45 and a little
-// beyond. See tools/scaling_probe.sh for the sweep harness.
+// The machine leans on P2996 reflection and P1306 expansion statements, which
+// are compile-time-heavy, so build cost as the State count grows is a risk worth
+// measuring. This generator exists to *measure* it: it emits a valid N-State
+// machine table at compile time so a build can be timed for a range of N (and
+// hierarchy depth). See tools/scaling_probe.sh for the sweep harness.
 //
 // This is a compile-time `constexpr` generator, not source emission:
 // `generate<N, Depth>()` returns an Hsm table value, instantiated as

@@ -100,8 +100,8 @@ build):
 
 | States (N)         | Compile (s) | Peak GGC (MB) |
 | -----------------: | ----------: | ------------: |
-| 7 (the v1 spike)   |        0.28 |           139 |
-| 45 (large) |        0.40 |           170 |
+| 7 (small)          |        0.28 |           139 |
+| 45 (large)         |        0.40 |           170 |
 | 60 (beyond)        |        0.42 |           186 |
 
 Growth is sub-quadratic: compile time scales as ≈ N^0.2 over 7 → 45, so a
