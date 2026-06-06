@@ -37,6 +37,13 @@ add_executable(nested_test nested_test.cpp)
 target_link_libraries(nested_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(nested_test)
 
+add_executable(reference_interpreter_test reference_interpreter_test.cpp)
+target_link_libraries(
+    reference_interpreter_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
+)
+gtest_discover_tests(reference_interpreter_test)
+
 add_executable(example_control_test example_control_test.cpp)
 target_link_libraries(
     example_control_test

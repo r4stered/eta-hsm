@@ -7,6 +7,7 @@ cc_library(
     hdrs = glob([
         "reflect/*.hpp",
         "machine/*.hpp",
+        "reference/*.hpp",
         "log/*.hpp",
         "utils/*.hpp",
         "examples/**/*.hpp",
