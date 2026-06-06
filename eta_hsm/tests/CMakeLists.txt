@@ -182,14 +182,21 @@ eta_add_negcompile_test_src(
 eta_add_negcompile_test_src(
     concepts_negcompile_bad_logger
     1
-    "constraint failure.*Logger|satisfaction of 'Logger"
+    "constraint failure.*Logger|satisfaction of '(eta_hsm::)?Logger"
     "eta_hsm/tests/concepts_negcompile.cpp"
     "CONCEPTS_CASE"
 )
 eta_add_negcompile_test_src(
     concepts_negcompile_bad_observer
     2
-    "constraint failure.*Observer|satisfaction of 'Observer"
+    "constraint failure.*Observer|satisfaction of '(eta_hsm::)?Observer"
+    "eta_hsm/tests/concepts_negcompile.cpp"
+    "CONCEPTS_CASE"
+)
+eta_add_negcompile_test_src(
+    concepts_negcompile_misshapen_observer
+    3
+    "constraint failure.*Observer|satisfaction of '(eta_hsm::)?Observer"
     "eta_hsm/tests/concepts_negcompile.cpp"
     "CONCEPTS_CASE"
 )

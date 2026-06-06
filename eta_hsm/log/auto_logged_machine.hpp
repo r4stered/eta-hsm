@@ -100,7 +100,7 @@ public:
     using Event = typename decltype(Table)::Event;
 
     AutoLoggedMachine(std::string name, LoggerT& logger, unsigned verbosity = 3)
-        : machine_{Observer{std::move(name), &logger, verbosity}}
+        : machine_{Obs{std::move(name), &logger, verbosity}}
     {}
 
     void dispatch(Event event) { machine_.dispatch(event); }
@@ -118,8 +118,8 @@ public:
     const auto& host() const { return machine_.host(); }
 
 private:
-    using Observer = LoggingObserver<State, Event, LoggerT>;
-    Machine<Table, Observer> machine_;
+    using Obs = LoggingObserver<State, Event, LoggerT>;
+    Machine<Table, Obs> machine_;
 };
 
 }  // namespace eta_hsm

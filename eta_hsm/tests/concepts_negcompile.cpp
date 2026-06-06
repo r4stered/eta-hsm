@@ -33,7 +33,7 @@ inline constexpr auto table = Hsm<H>{}
                                   .on(State::B, Event::Go, State::A);
 
 #ifndef CONCEPTS_CASE
-#error "define CONCEPTS_CASE (1..2) to select a negative case"
+#error "define CONCEPTS_CASE (1..3) to select a negative case"
 #endif
 
 #if CONCEPTS_CASE == 1
@@ -57,8 +57,21 @@ struct BadObserver {
 };
 using M = Machine<table, BadObserver>;
 
+#elif CONCEPTS_CASE == 3
+// An Observer whose notify has the wrong shape: onTransition takes two arguments
+// instead of (from, to, event). The Observer concept rejects it at the Machine
+// instantiation, naming `Observer`, rather than failing deep inside dispatch where
+// the three-argument call is made.
+struct BadObserver {
+    void onEntry(State) {}
+    void onExit(State) {}
+    void onInit(State) {}
+    void onTransition(State, Event) {}  // wrong arity: should be (from, to, event)
+};
+using M = Machine<table, BadObserver>;
+
 #else
-#error "CONCEPTS_CASE must be 1..2"
+#error "CONCEPTS_CASE must be 1..3"
 #endif
 
 }  // namespace
