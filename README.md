@@ -7,6 +7,108 @@ A C++ library for defining and running **hierarchical state machines** (HSMs).
 > `wise_enum` dependency. The v1 CRTP API is not part of v2 — see
 > [Using v1](#using-v1) below to keep building the previous release.
 
+## At a glance
+
+A whole machine is one `constexpr` table: States with their parent, the Top
+State's Initial Substate, and flat `(Source, Event, Target [, Action])` rows.
+There are no handler `switch` bodies and no per-State classes — the topology is
+data. Per-State Entry/Exit hooks and Actions are ordinary members of your Host,
+matched **by name via reflection**, so you write only the ones you need.
+
+```cpp
+#include <cassert>
+
+#include "eta_hsm/machine/hsm.hpp"
+#include "eta_hsm/machine/machine.hpp"
+
+using namespace eta_hsm;
+
+enum class State { Top, Stopped, Playing };
+enum class Event { Play, Stop };
+
+// The Host owns no machine state; it supplies Actions and per-State hooks.
+struct Player {
+    int plays = 0;
+    void start() { ++plays; }           // an Action, run on a Transition
+    void entry_Playing() {}             // a per-State Entry hook, found by reflection
+};
+
+// The single source of truth. `Hsm<Player>{}` deduces the State enum from the
+// first `.state` and the Event enum from the first `.on`.
+inline constexpr auto player = Hsm<Player>{}
+                                   .state(State::Stopped, State::Top)
+                                   .state(State::Playing, State::Top)
+                                   .initial(State::Top, State::Stopped)
+                                   .on(State::Stopped, Event::Play, State::Playing, &Player::start)
+                                   .on(State::Playing, Event::Stop, State::Stopped);
+
+int main()
+{
+    Machine<player> m;                          // table validated at compile time; rests in Stopped
+    m.dispatch(Event::Play);                    // Stopped -> Playing, runs start()
+    assert(m.identify() == State::Playing);
+    assert(m.host().plays == 1);
+}
+```
+
+The same table drives the machine, the compile-time
+[validator](#testing), and the [diagram emitter](#diagrams) — one definition,
+three consumers, no chance of drift. The data-oriented core has no vtable and no
+heap on the event path; see [Performance](#performance).
+
+## Performance
+
+eta_hsm is data-oriented by construction, and the costs that matter are
+**structural** — true of *every* machine regardless of size, not a benchmark
+number that rots. A `Machine<Table>` is:
+
+- **Zero heap allocation on the event path.** Delivering an Event touches only
+  the Host and the machine's single State word; nothing is allocated to dispatch.
+- **No virtual dispatch.** The machine carries no vtable and is never
+  polymorphic. The transition table is bound as a `constexpr` non-type template
+  argument, so dispatch is generated at compile time rather than resolved through
+  indirection.
+- **A fixed, compile-time-known footprint.** `sizeof(Machine<Table>)` is
+  `sizeof(Host)` plus a single State word (modulo alignment) — no per-Transition
+  storage, no hidden pointers, no growth with the size of the table.
+- **A fully-unrolled linear scan over a `constexpr` table.** Dispatch expands
+  (via P1306 expansion statements) to a flat sequence of comparisons over the
+  table's Transition rows — no loop over runtime data, no function-pointer table
+  walk. An unhandled Event defers up the parent chain, rescanning the rows at each
+  level, so the worst case is **O(Transitions × depth)** — not O(depth).
+
+These structural claims are **enforced by tests**
+([`eta_hsm/tests/footprint_test.cpp`](eta_hsm/tests/footprint_test.cpp)):
+`static_assert`s pin the footprint shape, the trivially-destructible
+(no-heap-of-its-own) machine, and the non-polymorphic (no-vtable) property on the
+`cd_player` table, so they cannot silently regress.
+
+> **Deliberately no runtime wall-clock benchmark.** A ns/dispatch figure is
+> hardware-dependent and ages badly; the structural guarantees above are durable
+> and verifiable. Adding a benchmark later is cheap if a consumer needs one.
+
+### Compile-time scaling
+
+Reflection (P2996) and expansion statements (P1306) are compile-time-heavy, so
+the open question is whether the design scales to a large machine's *build*. A
+`consteval generate<N, Depth>()` probe
+([`tools/scaling_probe.sh`](tools/scaling_probe.sh)) sweeps synthetic N-State
+machines and records GCC-16 compile time and peak GC memory. Measured on an
+**Apple M5 Pro** under **GCC 16.0.1** in the `eta_hsm-toolchain` Docker image,
+**2026-06-05** (reference shape: `-O2`, ~3-deep nesting — closest to a real
+build):
+
+| States (N)         | Compile (s) | Peak GGC (MB) |
+| -----------------: | ----------: | ------------: |
+| 7 (the v1 spike)   |        0.28 |           139 |
+| 45 (large) |        0.40 |           170 |
+| 60 (beyond)        |        0.42 |           186 |
+
+Growth is sub-quadratic: compile time scales as ≈ N^0.2 over 7 → 45, so a
+45-State machine costs ~1.4× the compile time and ~1.2× the peak memory of a
+7-State one. Re-run
+`./docker_build bash tools/scaling_probe.sh` to refresh the numbers on your host.
+
 ## Toolchain
 
 The single supported toolchain is **GCC 16+** at `-std=c++26 -freflection`

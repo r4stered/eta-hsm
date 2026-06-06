@@ -94,6 +94,10 @@ target_link_libraries(
 )
 gtest_discover_tests(scaling_probe_test)
 
+add_executable(footprint_test footprint_test.cpp)
+target_link_libraries(footprint_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
+gtest_discover_tests(footprint_test)
+
 # ----------------------------------------------------------------------------
 # Build-failure harness for the compile-time validator. Each case
 # compiles a deliberately ill-formed machine (validator_negcompile.cpp, one CASE
