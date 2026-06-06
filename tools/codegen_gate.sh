@@ -42,11 +42,15 @@ work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 
 # Disassemble the whole object for one build of the probe (extra args appended).
+# -r interleaves relocations: a call to an external symbol (operator new, the
+# contract handler, ...) names its target as a relocation on x86-64, where the
+# plain disassembly leaves it unresolved -- aarch64 annotates the target inline,
+# x86-64 does not, so the relocation is what makes the symbol-name match portable.
 disasm() {  # <out-tag> [extra compiler args...]
     local tag="$1"
     shift
     "${CXX}" "${FLAGS[@]}" "$@" -c "${SRC}" -o "${work}/${tag}.o"
-    "${OBJDUMP}" -dC "${work}/${tag}.o"
+    "${OBJDUMP}" -dCr "${work}/${tag}.o"
 }
 
 # Print any indirect call/branch instruction (aarch64 or x86-64). Reads the
