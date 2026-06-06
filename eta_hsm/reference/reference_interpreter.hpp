@@ -206,8 +206,7 @@ Plan<StateEnum, Host> referenceStep(const TableView<StateEnum, EventEnum, Host>&
     {
         for (auto const& tr : view.transitions)
         {
-            if (tr.source == handler && tr.event == event &&
-                (tr.guard == nullptr || (guardHost.*(tr.guard))()))
+            if (tr.source == handler && tr.event == event && (tr.guard == nullptr || (guardHost.*(tr.guard))()))
             {
                 match = &tr;
                 break;

@@ -44,6 +44,10 @@ target_link_libraries(
 )
 gtest_discover_tests(reference_interpreter_test)
 
+add_executable(backbone_test backbone_test.cpp)
+target_link_libraries(backbone_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
+gtest_discover_tests(backbone_test)
+
 add_executable(example_control_test example_control_test.cpp)
 target_link_libraries(
     example_control_test

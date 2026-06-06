@@ -46,6 +46,15 @@ cc_test(
 )
 
 cc_test(
+    name = "backbone_test",
+    srcs = ["backbone_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "example_control_test",
     srcs = ["example_control_test.cpp"],
     deps = [
