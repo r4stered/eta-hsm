@@ -42,26 +42,26 @@ enum class Event {
 struct Model {
     std::string log;
 
-    void act_go() { log += "go;"; }
+    constexpr void act_go() { log += "go;"; }
 
-    void entry_Top() { log += "+Top;"; }
-    void exit_Top() { log += "-Top;"; }
-    void entry_A() { log += "+A;"; }
-    void exit_A() { log += "-A;"; }
-    void entry_A1() { log += "+A1;"; }
-    void exit_A1() { log += "-A1;"; }
-    void entry_A2() { log += "+A2;"; }
-    void exit_A2() { log += "-A2;"; }
-    void entry_B() { log += "+B;"; }
-    void exit_B() { log += "-B;"; }
-    void entry_B1() { log += "+B1;"; }
-    void exit_B1() { log += "-B1;"; }
-    void entry_B1a() { log += "+B1a;"; }
-    void exit_B1a() { log += "-B1a;"; }
-    void entry_B1b() { log += "+B1b;"; }
-    void exit_B1b() { log += "-B1b;"; }
-    void entry_B2() { log += "+B2;"; }
-    void exit_B2() { log += "-B2;"; }
+    constexpr void entry_Top() { log += "+Top;"; }
+    constexpr void exit_Top() { log += "-Top;"; }
+    constexpr void entry_A() { log += "+A;"; }
+    constexpr void exit_A() { log += "-A;"; }
+    constexpr void entry_A1() { log += "+A1;"; }
+    constexpr void exit_A1() { log += "-A1;"; }
+    constexpr void entry_A2() { log += "+A2;"; }
+    constexpr void exit_A2() { log += "-A2;"; }
+    constexpr void entry_B() { log += "+B;"; }
+    constexpr void exit_B() { log += "-B;"; }
+    constexpr void entry_B1() { log += "+B1;"; }
+    constexpr void exit_B1() { log += "-B1;"; }
+    constexpr void entry_B1a() { log += "+B1a;"; }
+    constexpr void exit_B1a() { log += "-B1a;"; }
+    constexpr void entry_B1b() { log += "+B1b;"; }
+    constexpr void exit_B1b() { log += "-B1b;"; }
+    constexpr void entry_B2() { log += "+B2;"; }
+    constexpr void exit_B2() { log += "-B2;"; }
 };
 
 inline constexpr auto model = Hsm<Model>{}

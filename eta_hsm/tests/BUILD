@@ -55,6 +55,15 @@ eta_cc_test(
 )
 
 eta_cc_test(
+    name = "compile_time_backbone_test",
+    srcs = ["compile_time_backbone_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+eta_cc_test(
     name = "random_walk_test",
     srcs = ["random_walk_test.cpp"],
     deps = [

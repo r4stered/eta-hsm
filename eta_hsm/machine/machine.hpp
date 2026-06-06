@@ -26,16 +26,16 @@ namespace detail {
 // layer's LoggingObserver) supplies the same members with bodies.
 struct NullObserver {
     template <class State>
-    void onEntry(State)
+    constexpr void onEntry(State)
     {}
     template <class State>
-    void onExit(State)
+    constexpr void onExit(State)
     {}
     template <class State>
-    void onInit(State)
+    constexpr void onInit(State)
     {}
     template <class State, class Event>
-    void onTransition(State, State, Event)
+    constexpr void onTransition(State, State, Event)
     {}
 };
 
@@ -76,7 +76,7 @@ consteval bool hook_named(std::meta::info m, std::string_view prefix, std::strin
 // never called with the wrong shape; the fixed-arity prefixes have no such guard,
 // so a name-matching hook of the wrong shape is a hard compile error there.
 template <fixed_string Prefix, class Host, class StateEnum, class... Args>
-void run_hook(Host& host, StateEnum s, Args&&... args)
+constexpr void run_hook(Host& host, StateEnum s, Args&&... args)
 {
     template for (constexpr std::meta::info ev : std::define_static_array(std::meta::enumerators_of(^^StateEnum)))
     {
@@ -254,15 +254,15 @@ public:
     // On construction the machine enters its initial configuration: it runs the
     // Entry hook for Top and for each Initial Substate down to the resting Leaf,
     // so the machine never sits in a State whose Entry has not run.
-    Machine() { current_ = enter_initial_chain(); }
+    constexpr Machine() { current_ = enter_initial_chain(); }
 
     // Same, but with a caller-supplied Observer in place. The Observer must be
     // installed before the initial Entry chain runs so it can witness the init
     // (the auto-logging layer relies on this to emit construction-time lines).
-    explicit Machine(Observer observer) : observer_{std::move(observer)} { current_ = enter_initial_chain(); }
+    explicit constexpr Machine(Observer observer) : observer_{std::move(observer)} { current_ = enter_initial_chain(); }
 
     // The Leaf State the machine currently rests in.
-    State identify() const { return current_; }
+    constexpr State identify() const { return current_; }
 
     // Deliver one Event. Dispatch is generated at compile time: a `template for`
     // over the table's Transitions expands to one comparison per Transition, so
@@ -274,7 +274,7 @@ public:
     // State change; otherwise take_transition runs the ordered Exit/Action/Entry
     // chain through the least-common-ancestor and drills the Target into its
     // Initial Substate so the machine comes to rest in a Leaf.
-    void dispatch(Event event)
+    constexpr void dispatch(Event event)
     {
         static constexpr auto trs = detail::transitions<Table>();
         State const origin = current_;  // resting Leaf before this Dispatch, for the Transition line
@@ -333,7 +333,7 @@ public:
     // it declares one. No Transition runs and no Exit/Entry fires -- the tick
     // touches only the current Leaf, never an ancestor. A Leaf whose Host has no
     // during hook does nothing.
-    void during() { detail::run_hook<"during">(host_, current_); }
+    constexpr void during() { detail::run_hook<"during">(host_, current_); }
 
     // The input-consuming During tick: call the Host's stateUpdate_<Name>(input)
     // hook for the current Leaf, forwarding `input`. Like during() it runs only
@@ -341,14 +341,14 @@ public:
     // matching stateUpdate hook (or whose hook does not accept this input) does
     // nothing. `Input` is deduced, so the Host names whatever parameter type fits.
     template <class Input>
-    void during(const Input& input)
+    constexpr void during(const Input& input)
     {
         detail::run_hook<"stateUpdate">(host_, current_, input);
     }
 
     // True if `ancestor` is the current Leaf or one of its ancestors. Every Leaf
     // is a substate of Top.
-    bool isInSubstateOf(State ancestor) const
+    constexpr bool isInSubstateOf(State ancestor) const
     {
         State s = current_;
         for (;;)
@@ -365,19 +365,19 @@ public:
         }
     }
 
-    Host& host() { return host_; }
-    const Host& host() const { return host_; }
+    constexpr Host& host() { return host_; }
+    constexpr const Host& host() const { return host_; }
 
 private:
     // The parent of `s` in the State tree (Top is its own parent; the dispatch
     // loop stops at Top before consulting this).
-    static State parent_of(State s)
+    static constexpr State parent_of(State s)
     {
         std::size_t const i = detail::state_index<Table>(s);
         return i == Table.stateCount ? s : Table.states[i].parent;
     }
 
-    static bool is_top(State s)
+    static constexpr bool is_top(State s)
     {
         std::size_t const i = detail::state_index<Table>(s);
         return i != Table.stateCount && Table.states[i].isTop;
@@ -391,7 +391,7 @@ private:
     // drill the Target into its Initial Substates so the machine rests in a Leaf.
     // External (the default) Exits and re-enters a shared parent/child State;
     // Local does not -- the only difference is which State the LCA resolves to.
-    void take_transition(State source, State target, void (Host::*action)(), bool local)
+    constexpr void take_transition(State source, State target, void (Host::*action)(), bool local)
     {
         State const lca =
             local ? detail::lca_local<Table>(source, target) : detail::lca_external<Table>(source, target);
@@ -478,7 +478,7 @@ private:
 
     // Walk from Top down the Initial Substate chain, running each State's Entry
     // hook, and return the resting Leaf. Used once, at construction.
-    State enter_initial_chain()
+    constexpr State enter_initial_chain()
     {
         State s = detail::top_state<Table, State>();
         detail::run_hook<"entry">(host_, s);

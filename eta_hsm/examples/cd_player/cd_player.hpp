@@ -25,34 +25,34 @@ struct Player {
 
     // A Guard: `bool (Player::*)() const`. Whacking a jammed drawer with the
     // Hammer frees it; an un-jammed drawer defers the Hammer to Top.
-    bool drawer_jammed() const { return drawer_stuck; }
+    constexpr bool drawer_jammed() const { return drawer_stuck; }
 
-    void start_playback() { log += "start_playback;"; }
-    void open_drawer() { log += "open_drawer;"; }
-    void close_drawer() { log += "close_drawer;"; }
-    void store_cd_info() { log += "store_cd_info;"; }
-    void stop_playback() { log += "stop_playback;"; }
-    void pause_playback() { log += "pause_playback;"; }
-    void resume_playback() { log += "resume_playback;"; }
-    void stop_and_open() { log += "stop_and_open;"; }
-    void turn_up()
+    constexpr void start_playback() { log += "start_playback;"; }
+    constexpr void open_drawer() { log += "open_drawer;"; }
+    constexpr void close_drawer() { log += "close_drawer;"; }
+    constexpr void store_cd_info() { log += "store_cd_info;"; }
+    constexpr void stop_playback() { log += "stop_playback;"; }
+    constexpr void pause_playback() { log += "pause_playback;"; }
+    constexpr void resume_playback() { log += "resume_playback;"; }
+    constexpr void stop_and_open() { log += "stop_and_open;"; }
+    constexpr void turn_up()
     {
         ++volume;
         log += "turn_up;";
     }
-    void next_track() { log += "next_track;"; }
+    constexpr void next_track() { log += "next_track;"; }
 
     // Per-State Entry/Exit hooks, auto-detected by reflection: the Host writes
     // only the ones it needs. Open/Empty/Broken deliberately have none, so
     // entering/leaving them fires nothing.
-    void entry_Top() { log += "+Top;"; }
-    void exit_Top() { log += "-Top;"; }
-    void entry_Stopped() { log += "+Stopped;"; }
-    void exit_Stopped() { log += "-Stopped;"; }
-    void entry_Playing() { log += "+Playing;"; }
-    void exit_Playing() { log += "-Playing;"; }
-    void entry_Paused() { log += "+Paused;"; }
-    void exit_Paused() { log += "-Paused;"; }
+    constexpr void entry_Top() { log += "+Top;"; }
+    constexpr void exit_Top() { log += "-Top;"; }
+    constexpr void entry_Stopped() { log += "+Stopped;"; }
+    constexpr void exit_Stopped() { log += "-Stopped;"; }
+    constexpr void entry_Playing() { log += "+Playing;"; }
+    constexpr void exit_Playing() { log += "-Playing;"; }
+    constexpr void entry_Paused() { log += "+Paused;"; }
+    constexpr void exit_Paused() { log += "-Paused;"; }
 };
 
 // The single source of truth for the cd_player machine. The builder is entered as

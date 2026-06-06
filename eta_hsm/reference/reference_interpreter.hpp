@@ -47,7 +47,7 @@ struct TableView {
     std::vector<Transition> transitions;
 
     // The row describing `s`, or nullptr if `s` is not a declared State.
-    const State* find(StateEnum s) const
+    constexpr const State* find(StateEnum s) const
     {
         for (const State& row : states)
         {
@@ -59,19 +59,19 @@ struct TableView {
         return nullptr;
     }
 
-    StateEnum parentOf(StateEnum s) const
+    constexpr StateEnum parentOf(StateEnum s) const
     {
         const State* row = find(s);
         return row == nullptr ? s : row->parent;
     }
 
-    bool isTop(StateEnum s) const
+    constexpr bool isTop(StateEnum s) const
     {
         const State* row = find(s);
         return row != nullptr && row->isTop;
     }
 
-    StateEnum topState() const
+    constexpr StateEnum topState() const
     {
         for (const State& row : states)
         {
@@ -84,7 +84,7 @@ struct TableView {
     }
 
     // True if `a` is `b` itself or one of b's ancestors, walking up to Top.
-    bool isAncestorOrSelf(StateEnum a, StateEnum b) const
+    constexpr bool isAncestorOrSelf(StateEnum a, StateEnum b) const
     {
         StateEnum cur = b;
         for (;;)
@@ -105,7 +105,7 @@ struct TableView {
     // The least-common-ancestor for an External Transition: the nearest strict
     // ancestor of `source` that is also an ancestor-or-self of `target`. A
     // Top-sourced Transition returns Top itself (the caller re-enters Top).
-    StateEnum lcaExternal(StateEnum source, StateEnum target) const
+    constexpr StateEnum lcaExternal(StateEnum source, StateEnum target) const
     {
         const State* row = find(source);
         if (row == nullptr || row->isTop)
@@ -131,7 +131,7 @@ struct TableView {
     // The least-common-ancestor for a Local Transition: when Source and Target
     // are in a parent/child relationship the shared State is kept (neither Exited
     // nor re-entered); otherwise identical to the External result.
-    StateEnum lcaLocal(StateEnum source, StateEnum target) const
+    constexpr StateEnum lcaLocal(StateEnum source, StateEnum target) const
     {
         if (isAncestorOrSelf(source, target))
         {
@@ -147,7 +147,7 @@ struct TableView {
 
 // Build a runtime view of any `constexpr` Hsm table value.
 template <auto Table>
-auto makeTableView()
+constexpr auto makeTableView()
 {
     using StateEnum = typename decltype(Table)::State;
     using EventEnum = typename decltype(Table)::Event;
@@ -192,8 +192,8 @@ struct Plan {
 // Host). Pure tree-walking over the runtime view; never touches production
 // dispatch.
 template <class StateEnum, class EventEnum, class Host>
-Plan<StateEnum, Host> referenceStep(const TableView<StateEnum, EventEnum, Host>& view, StateEnum start, EventEnum event,
-                                    const Host& guardHost, Fault fault = Fault::None)
+constexpr Plan<StateEnum, Host> referenceStep(const TableView<StateEnum, EventEnum, Host>& view, StateEnum start,
+                                              EventEnum event, const Host& guardHost, Fault fault = Fault::None)
 {
     Plan<StateEnum, Host> plan;
     plan.leaf = start;
@@ -302,7 +302,7 @@ Plan<StateEnum, Host> referenceStep(const TableView<StateEnum, EventEnum, Host>&
 // The resting Leaf the machine settles in from its initial configuration: drill
 // from Top down the Initial Substate chain until a Leaf.
 template <class StateEnum, class EventEnum, class Host>
-StateEnum initialLeaf(const TableView<StateEnum, EventEnum, Host>& view)
+constexpr StateEnum initialLeaf(const TableView<StateEnum, EventEnum, Host>& view)
 {
     StateEnum s = view.topState();
     for (;;)
@@ -331,8 +331,8 @@ struct Reached {
 // `guardHost`, so the reachable set reflects that Host's Guard outcomes. A
 // State no Transition can reach (e.g. an orphaned Leaf) never appears.
 template <class StateEnum, class EventEnum, class Host>
-std::vector<Reached<StateEnum, EventEnum>> reachable(const TableView<StateEnum, EventEnum, Host>& view,
-                                                     const Host& guardHost)
+constexpr std::vector<Reached<StateEnum, EventEnum>> reachable(const TableView<StateEnum, EventEnum, Host>& view,
+                                                              const Host& guardHost)
 {
     constexpr auto events = eta_hsm::enum_values<EventEnum>();
     std::vector<Reached<StateEnum, EventEnum>> out;
@@ -378,7 +378,7 @@ std::vector<Reached<StateEnum, EventEnum>> reachable(const TableView<StateEnum, 
 // (as cd_player's do). A Host whose hook output depends on earlier mutations would
 // need the same starting state production reached, threaded in here.
 template <class StateEnum, class Host>
-Host renderOn(const Plan<StateEnum, Host>& plan)
+constexpr Host renderOn(const Plan<StateEnum, Host>& plan)
 {
     Host host{};
     for (StateEnum s : plan.exits)

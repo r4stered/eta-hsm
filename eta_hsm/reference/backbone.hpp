@@ -34,20 +34,22 @@ namespace eta_hsm::reference {
 // into caller-owned buffers. The Machine stores the Observer by value, so this
 // holds pointers back to the buffers (the auto-logging layer's LoggingObserver
 // uses the same pointer-back idiom) -- the recorded order survives to be compared
-// against the reference plan after a Dispatch.
+// against the reference plan after a Dispatch. Every member is constexpr so the
+// same observer records a Dispatch run inside constant evaluation (the compile-time
+// differential, compile_time_backbone.hpp, reuses it).
 template <class State>
 struct RecordingObserver {
     std::vector<State>* exits{nullptr};
     std::vector<State>* entries{nullptr};
 
-    void onExit(State s)
+    constexpr void onExit(State s)
     {
         if (exits != nullptr)
         {
             exits->push_back(s);
         }
     }
-    void onEntry(State s)
+    constexpr void onEntry(State s)
     {
         if (entries != nullptr)
         {
@@ -55,10 +57,10 @@ struct RecordingObserver {
         }
     }
     template <class S>
-    void onInit(S)
+    constexpr void onInit(S)
     {}
     template <class S, class E>
-    void onTransition(S, S, E)
+    constexpr void onTransition(S, S, E)
     {}
 };
 

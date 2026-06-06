@@ -32,6 +32,7 @@ eta_add_test(cd_player)
 eta_add_test(nested)
 eta_add_test(reference_interpreter)
 eta_add_test(backbone)
+eta_add_test(compile_time_backbone)
 eta_add_test(random_walk)
 eta_add_test(example_control)
 eta_add_test(during)
@@ -161,6 +162,28 @@ eta_add_negcompile_test_src(
     "cannot convert.*OtherEvent|OtherEvent"
     "eta_hsm/tests/builder_negcompile.cpp"
     "BUILDER_CASE"
+)
+
+# Compile-time backbone: a planted divergence must fail the BUILD. The
+# differential is run with a reference Fault injected, so production and the
+# reference disagree on the first reachable matched pair (Stopped + Play); the
+# CtReport static_assert then fires with a message naming that (State, Event).
+# The "Stopped.Play" in each pattern is that first pair: cd_player's initial Leaf
+# is Stopped and Play is its first State-enum Event, so it is the first pair the
+# reachability BFS visits -- update these if either ordering changes.
+eta_add_negcompile_test_src(
+    compile_time_backbone_negcompile_wrong_leaf
+    1
+    "resting Leaf mismatch.*Stopped.Play"
+    "eta_hsm/tests/compile_time_backbone_negcompile.cpp"
+    "CTBACKBONE_CASE"
+)
+eta_add_negcompile_test_src(
+    compile_time_backbone_negcompile_dropped_exit
+    2
+    "Exit sequence mismatch.*Stopped.Play"
+    "eta_hsm/tests/compile_time_backbone_negcompile.cpp"
+    "CTBACKBONE_CASE"
 )
 
 # Contiguous-from-zero enum contract: StaticTimerBank / TimeTracker
