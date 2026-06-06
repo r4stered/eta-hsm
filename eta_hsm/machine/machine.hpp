@@ -137,6 +137,15 @@ constexpr std::size_t state_index(StateEnum s)
     return Table.stateCount;
 }
 
+// True if `s` is a declared Leaf State -- one the table knows about that has no
+// Initial Substate, i.e. a State the machine can come to rest in.
+template <auto Table, class StateEnum>
+constexpr bool is_resting_leaf(StateEnum s)
+{
+    std::size_t const i = state_index<Table>(s);
+    return i != Table.stateCount && !Table.states[i].hasInitial;
+}
+
 // The single Top State of the table.
 template <auto Table, class StateEnum>
 constexpr StateEnum top_state()
@@ -344,6 +353,10 @@ public:
                     return;
                 }
                 take_transition(source, target, action, local);
+                // take_transition drills the Target through its Initial Substates,
+                // so the machine must now rest in a Leaf the table declares -- the
+                // resting invariant every subsequent dispatch relies on.
+                contract_assert(detail::is_resting_leaf<Table>(current_));
                 // The Transition line is leaf-to-leaf and fires last, after the
                 // Exit/Entry/init chain that take_transition ran.
                 observer_.onTransition(origin, current_, event);

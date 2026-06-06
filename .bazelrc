@@ -1,3 +1,17 @@
 # Single C++26 baseline on GCC 16 with P2996 reflection (ADR-0001).
 build --cxxopt=-std=c++26
 build --cxxopt=-freflection
+
+# C++26 contracts (P2900). -fcontracts is needed to parse a header carrying a
+# contract; the violation handler it references lives in the experimental runtime,
+# linked explicitly (Bazel appends linkopts after the objects, so the static
+# archive resolves).
+build --cxxopt=-fcontracts
+build --linkopt=-lstdc++exp
+# Enforcement semantic: a violation aborts by default, in every mode including a
+# bare `-c opt`. Dropping the checks is an explicit opt-in via --config=release,
+# which also sets -c opt; the last -fcontract-evaluation-semantic on the line wins,
+# so the release config flips enforce to ignore.
+build --cxxopt=-fcontract-evaluation-semantic=enforce
+build:release --compilation_mode=opt
+build:release --cxxopt=-fcontract-evaluation-semantic=ignore

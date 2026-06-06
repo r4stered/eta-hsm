@@ -30,10 +30,27 @@ target_include_directories(
 )
 target_compile_features(eta_hsm INTERFACE cxx_std_26)
 # Reflection (P2996) is opt-in on GCC; consumers of the headers need it too.
+# Contracts (P2900: pre/post/contract_assert) are likewise behind a flag, and
+# -fcontracts is required just to PARSE a header that carries a contract -- so it
+# rides the public interface exactly as -freflection does, and is exported to
+# downstream consumers for the same reason.
+#
+# The enforcement SEMANTIC is a separate runtime policy: enforce (a violation
+# aborts) for every build except Release, which uses ignore (checks compiled out,
+# no overhead). It is scoped to this build tree so a downstream consumer picks its
+# own semantic rather than inheriting ours.
 target_compile_options(
     eta_hsm
-    INTERFACE "$<$<CXX_COMPILER_ID:GNU>:-freflection>"
+    INTERFACE
+        "$<$<CXX_COMPILER_ID:GNU>:-freflection>"
+        "$<$<CXX_COMPILER_ID:GNU>:-fcontracts>"
+        "$<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:GNU>:-fcontract-evaluation-semantic=$<IF:$<CONFIG:Release>,ignore,enforce>>>"
 )
+# A checked contract emits a reference to the violation handler that lives in the
+# experimental runtime (libstdc++exp). Passing -fcontracts on the link line lets
+# the compiler driver pull that library in; without it, any contract-bearing TU
+# fails to link with an undefined handle_contract_violation.
+target_link_options(eta_hsm INTERFACE "$<$<CXX_COMPILER_ID:GNU>:-fcontracts>")
 
 # ----------------------------------------------------------------------------
 # Strict warnings for the targets we compile. This INTERFACE library carries the

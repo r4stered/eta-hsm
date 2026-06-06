@@ -85,10 +85,10 @@ public:
     void clear() { mStorage = {}; }
 
     /// Is the bucket empty?
-    bool empty() { return mStorage.empty(); }
+    bool empty() const { return mStorage.empty(); }
 
     /// How many events are in the bucket?
-    size_t size() { return mStorage.size(); }
+    size_t size() const { return mStorage.size(); }
 
     /// Simplified accessor that removes an event from the bucket and returns it.
     Event getEvent()
@@ -105,18 +105,10 @@ public:
         }
     }
 
-    /// Direct access to underlying priority_queue.
-    Event top()
-    {
-        // WARNING: calling std::priority_queue::top() on an empty queue has unspecified behavior.
-        //          In my testing, it tended to segfault if the queue was freshly initialized, but
-        //          (more worryingly) happily returned the last value held in other cases.
-        if (empty())
-        {
-            return Event::eNone;  // pretend like there is always an eNone
-        }
-        return mStorage.top();
-    }
+    /// Peek the highest-priority event without removing it. Peeking an empty
+    /// bucket has no defined value, so the precondition holds the caller to a
+    /// non-empty bucket rather than fabricating a sentinel.
+    Event top() pre(!empty()) { return mStorage.top(); }
     void pop() { mStorage.pop(); }
 
 private:
