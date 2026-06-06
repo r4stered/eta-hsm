@@ -155,6 +155,18 @@ TEST(CdPlayer, GuardFalseDefersToParent)
     EXPECT_EQ(m.identify(), State::Playing);  // taken by Top, not by Stopped's guarded row
 }
 
+// A Top-handled External Transition Exits and re-enters Top, the same way an
+// External Transition Exits and re-enters any other Composite Source it targets a
+// descendant of. Hammer defers from Stopped to Top, whose row targets Playing, so
+// the chain Exits Stopped then Top, runs no Action, and Enters Top then Playing.
+TEST(CdPlayer, TopHandledTransitionReentersTop)
+{
+    Machine<player> m;
+    m.host().log.clear();  // drop the construction entry chain
+    m.dispatch(Event::Hammer);  // Stopped defers to Top -> Playing
+    EXPECT_EQ(m.host().log, "-Stopped;-Top;+Top;+Playing;");
+}
+
 // A Guarded Transition whose Guard returns true is taken, in preference to the
 // parent's handler for the same Event. With drawer_stuck set, Hammer on Stopped
 // runs open_drawer and moves to Open instead of deferring to Top.

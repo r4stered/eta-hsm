@@ -169,10 +169,13 @@ TEST(AutoLoggedMachine, ScriptedRunTranscriptAtVerbosityThree)
                                 "nested HSM entering state B1b",
                                 "nested HSM initializing state B1b",
                                 "nested HSM transitioning from B1a to B1b due to Within",
-                                // Reset: exit B1b, B1, B; enter+init A, A1
+                                // Reset: exit B1b, B1, B; Top-sourced External
+                                // Transition exits+re-enters Top; enter+init A, A1
                                 "nested HSM exiting state B1b",
                                 "nested HSM exiting state B1",
                                 "nested HSM exiting state B",
+                                "nested HSM exiting state Top",
+                                "nested HSM entering state Top",
                                 "nested HSM entering state A",
                                 "nested HSM initializing state A",
                                 "nested HSM entering state A1",

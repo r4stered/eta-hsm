@@ -140,3 +140,18 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "v1_parity_test",
+    srcs = [
+        "v1_parity_test.cpp",
+        # v1's frozen auto-log transcripts, #included as raw-string literals, so
+        # the golden match needs no file IO and works under CMake and Bazel alike.
+        "golden/cd_player_transcript.inc",
+        "golden/example_control_transcript.inc",
+    ],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)

@@ -62,7 +62,8 @@ TEST(Nested, CrossLevelTransitionWithinComposite)
 
 // An Event no State on the active path handles itself defers to the nearest
 // ancestor that does. Reset is declared only on Top; from the deep Leaf B1a it
-// exits B1a, B1, B, then Top's Transition drills back into A -> A1.
+// exits B1a, B1, B, then -- as a Top-sourced External Transition -- exits and
+// re-enters Top before drilling back into A -> A1.
 TEST(Nested, EventDefersToNearestAncestorHandler)
 {
     Machine<model> m;
@@ -70,7 +71,7 @@ TEST(Nested, EventDefersToNearestAncestorHandler)
     m.host().log.clear();
     m.dispatch(Event::Reset);
     EXPECT_EQ(m.identify(), State::A1);
-    EXPECT_EQ(m.host().log, "-B1a;-B1;-B;+A;+A1;");
+    EXPECT_EQ(m.host().log, "-B1a;-B1;-B;-Top;+Top;+A;+A1;");
 }
 
 // External semantics (the default) on a parent/child Transition exit and re-enter

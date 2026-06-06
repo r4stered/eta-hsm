@@ -170,7 +170,9 @@ constexpr bool is_ancestor_or_self(StateEnum a, StateEnum b)
 // State the chain does NOT cross -- everything below it on the Source side is
 // Exited and everything below it on the Target side is Entered. For a self- or
 // parent/child Transition the result is the parent (so the shared State is Exited
-// and re-entered); the walk clamps at Top, so the root is never Exited.
+// and re-entered). The root has no parent, so for a Top-sourced Transition the
+// walk returns Top itself; the caller (take_transition) then Exits and re-enters
+// Top, keeping the root consistent with every other Composite Source.
 template <auto Table, class StateEnum>
 constexpr StateEnum lca_external(StateEnum source, StateEnum target)
 {
@@ -394,11 +396,31 @@ private:
         State const lca =
             local ? detail::lca_local<Table>(source, target) : detail::lca_external<Table>(source, target);
 
-        // Exit the active States from the current Leaf up to the LCA, bottom-up.
-        for (State s = current_; s != lca; s = parent_of(s))
+        // An External Transition Exits and re-enters its Source when the Source
+        // contains the Target -- the shared State is crossed, not spanned. For a
+        // Composite Source below the root the LCA resolves to the Source's parent,
+        // so the Source falls inside the spanned range and is Exited/re-entered
+        // naturally. The root has no parent for the LCA to clamp above, so a
+        // Top-sourced External Transition is the one case where the LCA State itself
+        // (Top) must be Exited and re-entered rather than merely spanned.
+        bool const reenterRoot = !local && is_top(source);
+
+        // Exit the active States from the current Leaf up to the LCA, bottom-up. The
+        // LCA is normally spanned (not Exited); when re-entering the root it is the
+        // last State Exited.
+        for (State s = current_;; s = parent_of(s))
         {
+            bool const atLca = (s == lca);
+            if (atLca && !reenterRoot)
+            {
+                break;
+            }
             detail::run_hook<"exit">(host_, s);
             observer_.onExit(s);
+            if (atLca)
+            {
+                break;
+            }
         }
 
         if (action != nullptr)
@@ -407,12 +429,23 @@ private:
         }
 
         // Entry from the LCA down to the Target: collect the path bottom-up, then
-        // fire each Entry hook top-down (the order States are actually entered).
+        // fire each Entry hook top-down (the order States are actually entered). The
+        // LCA is normally spanned; when re-entering the root it is the first State
+        // Entered.
         State path[kMaxStates];
         std::size_t depth = 0;
-        for (State s = target; s != lca; s = parent_of(s))
+        for (State s = target;; s = parent_of(s))
         {
+            bool const atLca = (s == lca);
+            if (atLca && !reenterRoot)
+            {
+                break;
+            }
             path[depth++] = s;
+            if (atLca)
+            {
+                break;
+            }
         }
         while (depth-- > 0)
         {
