@@ -30,15 +30,20 @@ namespace detail {
 // Resolve a Host member-function pointer (an Action or a Guard) to its declared
 // identifier. Returns an empty view for a null pointer (no Action / no Guard).
 // `Ptr` is the exact member-pointer type, so the `requires` guard skips every
-// member whose signature does not match, and pointer equality then picks out the
-// single member the table row refers to.
+// member whose signature does not match.
+//
+// The match is by reflection equality, not pointer-to-member equality: each
+// candidate and the target `p` are turned into reflections via reflect_constant
+// and compared as std::meta::info. A direct `member == p` (or `p == nullptr`)
+// comparison is well-defined but, under -fsanitize=undefined, GCC instruments
+// pointer-to-member comparisons into a form that is not a constant expression,
+// which makes this consteval function ill-formed in the sanitizer build.
+// Comparing the reflections sidesteps that entirely -- and a null `p` simply
+// reflects to a constant no member's reflection equals, so it needs no null check.
 template <class Host, class Ptr>
 consteval std::string_view resolve_member(Ptr p)
 {
-    if (p == nullptr)
-    {
-        return {};
-    }
+    std::meta::info const target = std::meta::reflect_constant(p);
     std::string_view name{};
     template for (constexpr std::meta::info m :
                   std::define_static_array(std::meta::members_of(^^Host, std::meta::access_context::current())))
@@ -47,11 +52,11 @@ consteval std::string_view resolve_member(Ptr p)
         {
             // Only members whose pointer-to-member type is exactly `Ptr` can match;
             // the rest (wrong signature, static, parameterized hooks) fail the cast
-            // and are skipped. Among the survivors, pointer equality is the
+            // and are skipped. Among the survivors, reflection equality is the
             // discriminator -- two same-signature members are told apart by value.
             if constexpr (requires { static_cast<Ptr>(&[:m:]); })
             {
-                if (static_cast<Ptr>(&[:m:]) == p)
+                if (std::meta::reflect_constant(static_cast<Ptr>(&[:m:])) == target)
                 {
                     name = std::meta::identifier_of(m);
                 }
@@ -115,6 +120,21 @@ constexpr typename decltype(Table)::State top_state()
         }
     }
     return State{};
+}
+
+// True if any State declares `s` as its parent, i.e. `s` is a Composite State.
+// (The Top State is its own parent, so it is excluded as a child of itself.)
+template <auto Table, class State>
+constexpr bool has_children(State s)
+{
+    for (std::size_t i = 0; i < Table.stateCount; ++i)
+    {
+        if (Table.states[i].parent == s && Table.states[i].state != s)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 // The State-tree row for `s`, or nullptr if `s` is not a declared State.
