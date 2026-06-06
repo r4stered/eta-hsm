@@ -55,9 +55,12 @@ struct Player {
     void exit_Paused() { log += "-Paused;"; }
 };
 
-// The single source of truth for the cd_player machine.
+// The single source of truth for the cd_player machine. The builder is entered as
+// Hsm<Player>{}: the State enum is deduced from the first .state and the Event
+// enum from the first .on, so the machine's two enums are named once each, at
+// their first use, rather than spelled again in the builder type.
 inline constexpr auto player =
-    Hsm<Player, State, Event>{}
+    Hsm<Player>{}
         .state(State::Stopped, State::Top)
         .state(State::Open, State::Top)
         .state(State::Empty, State::Top)

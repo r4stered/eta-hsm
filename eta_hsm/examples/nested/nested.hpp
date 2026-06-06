@@ -64,7 +64,7 @@ struct Model {
     void exit_B2() { log += "-B2;"; }
 };
 
-inline constexpr auto model = Hsm<Model, State, Event>{}
+inline constexpr auto model = Hsm<Model>{}
                                   .state(State::A, State::Top)
                                   .state(State::A1, State::A)
                                   .state(State::A2, State::A)

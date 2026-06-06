@@ -49,10 +49,25 @@ struct TransitionRow {
     bool local{false};  // Local Transition: skip Exit/re-entry of the shared ancestor (parent/child cases)
 };
 
+// Sentinel for an enum slot the builder has not yet deduced. `Hsm<Host>` enters
+// the builder with both the State and Event enums unknown; each is filled in
+// (replacing Deduce) the first time a call mentions it -- State from the first
+// .state/.initial/.unwired, Event from the first .on/.local/.internal. The fully
+// deduced result is the same type and value as the explicit Hsm<Host, State,
+// Event>{} build, so this is purely front-end sugar over the table below.
+struct Deduce {};
+
+// `Hsm<Host>` and `Hsm<Host, State>` are the partially-deduced builder stages;
+// `Hsm<Host, State, Event>` (both enums known) is the final table. The defaults
+// route the sugar entry points to the stage specializations further down.
+template <class Host, class StateEnum = Deduce, class EventEnum = Deduce>
+struct Hsm;
+
 // The fluent builder and the table value are the same type: every modifier
 // returns a new value with one more row, so the final chained expression is a
 // structural `constexpr` value usable as a non-type template argument to bind
-// the generated Dispatch (see Machine in machine.hpp).
+// the generated Dispatch (see Machine in machine.hpp). This fully-deduced stage
+// (both enums known) is what every downstream consumer sees.
 template <class Host, class StateEnum, class EventEnum>
 struct Hsm {
     using HostType = Host;
@@ -185,6 +200,160 @@ private:
             }
         }
         return nullptr;
+    }
+};
+
+// Stage 1: the State enum is deduced (from the first .state/.initial/.unwired),
+// the Event enum is still pending. Holds the State tree built so far; the first
+// .on/.local/.internal deduces the Event enum and promotes the accumulated rows
+// into the final Hsm<Host, StateEnum, EventEnum> table above, which is where the
+// Transition is recorded. The State-side modifiers mirror the final stage exactly
+// -- they take the concrete StateEnum, so mixing a second State enum is a plain
+// no-viable-conversion compile error.
+template <class Host, class StateEnum>
+struct Hsm<Host, StateEnum, Deduce> {
+    std::array<StateRow<StateEnum>, kMaxStates> states{};
+    std::size_t stateCount{0};
+    std::array<StateEnum, kMaxStates> unwiredStates{};
+    std::size_t unwiredCount{0};
+
+    constexpr Hsm state(StateEnum s, StateEnum parent) const
+    {
+        Hsm next = *this;
+        if (next.stateCount < kMaxStates)
+        {
+            next.states[next.stateCount] = StateRow<StateEnum>{s, parent, false, false, {}};
+        }
+        ++next.stateCount;
+        return next;
+    }
+
+    constexpr Hsm initial(StateEnum parent, StateEnum child) const
+    {
+        Hsm next = *this;
+        StateRow<StateEnum>* row = next.find(parent);
+        if (row == nullptr)
+        {
+            if (next.stateCount < kMaxStates)
+            {
+                next.states[next.stateCount] = StateRow<StateEnum>{parent, parent, true, false, {}};
+                row = &next.states[next.stateCount];
+            }
+            ++next.stateCount;
+        }
+        if (row != nullptr)
+        {
+            row->hasInitial = true;
+            row->initial = child;
+        }
+        return next;
+    }
+
+    constexpr Hsm unwired(StateEnum s) const
+    {
+        Hsm next = *this;
+        if (next.unwiredCount < kMaxStates)
+        {
+            next.unwiredStates[next.unwiredCount] = s;
+        }
+        ++next.unwiredCount;
+        return next;
+    }
+
+    template <class EventEnum>
+    constexpr Hsm<Host, StateEnum, EventEnum> on(StateEnum source, EventEnum event, StateEnum target,
+                                                 void (Host::*action)() = nullptr,
+                                                 bool (Host::*guard)() const = nullptr) const
+    {
+        return promote<EventEnum>().on(source, event, target, action, guard);
+    }
+
+    template <class EventEnum>
+    constexpr Hsm<Host, StateEnum, EventEnum> local(StateEnum source, EventEnum event, StateEnum target,
+                                                    void (Host::*action)() = nullptr,
+                                                    bool (Host::*guard)() const = nullptr) const
+    {
+        return promote<EventEnum>().local(source, event, target, action, guard);
+    }
+
+    template <class EventEnum>
+    constexpr Hsm<Host, StateEnum, EventEnum> internal(StateEnum source, EventEnum event, void (Host::*action)(),
+                                                       bool (Host::*guard)() const = nullptr) const
+    {
+        return promote<EventEnum>().internal(source, event, action, guard);
+    }
+
+private:
+    constexpr StateRow<StateEnum>* find(StateEnum s)
+    {
+        for (std::size_t i = 0; i < stateCount; ++i)
+        {
+            if (states[i].state == s)
+            {
+                return &states[i];
+            }
+        }
+        return nullptr;
+    }
+
+    // Carry the State tree built so far into the final, Event-known table. The
+    // Transition arrays start empty there; the first Transition call fills them.
+    template <class EventEnum>
+    constexpr Hsm<Host, StateEnum, EventEnum> promote() const
+    {
+        Hsm<Host, StateEnum, EventEnum> table{};
+        table.states = states;
+        table.stateCount = stateCount;
+        table.unwiredStates = unwiredStates;
+        table.unwiredCount = unwiredCount;
+        return table;
+    }
+};
+
+// Stage 0: the entry point `Hsm<Host>{}`, with both enums still pending. The
+// first State-side call deduces the State enum (handing off to stage 1); a
+// Transition call deduces both enums at once (handing off to the final table).
+template <class Host>
+struct Hsm<Host, Deduce, Deduce> {
+    template <class StateEnum>
+    constexpr Hsm<Host, StateEnum, Deduce> state(StateEnum s, StateEnum parent) const
+    {
+        return Hsm<Host, StateEnum, Deduce>{}.state(s, parent);
+    }
+
+    template <class StateEnum>
+    constexpr Hsm<Host, StateEnum, Deduce> initial(StateEnum parent, StateEnum child) const
+    {
+        return Hsm<Host, StateEnum, Deduce>{}.initial(parent, child);
+    }
+
+    template <class StateEnum>
+    constexpr Hsm<Host, StateEnum, Deduce> unwired(StateEnum s) const
+    {
+        return Hsm<Host, StateEnum, Deduce>{}.unwired(s);
+    }
+
+    template <class StateEnum, class EventEnum>
+    constexpr Hsm<Host, StateEnum, EventEnum> on(StateEnum source, EventEnum event, StateEnum target,
+                                                 void (Host::*action)() = nullptr,
+                                                 bool (Host::*guard)() const = nullptr) const
+    {
+        return Hsm<Host, StateEnum, Deduce>{}.on(source, event, target, action, guard);
+    }
+
+    template <class StateEnum, class EventEnum>
+    constexpr Hsm<Host, StateEnum, EventEnum> local(StateEnum source, EventEnum event, StateEnum target,
+                                                    void (Host::*action)() = nullptr,
+                                                    bool (Host::*guard)() const = nullptr) const
+    {
+        return Hsm<Host, StateEnum, Deduce>{}.local(source, event, target, action, guard);
+    }
+
+    template <class StateEnum, class EventEnum>
+    constexpr Hsm<Host, StateEnum, EventEnum> internal(StateEnum source, EventEnum event, void (Host::*action)(),
+                                                       bool (Host::*guard)() const = nullptr) const
+    {
+        return Hsm<Host, StateEnum, Deduce>{}.internal(source, event, action, guard);
     }
 };
 

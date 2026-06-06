@@ -28,7 +28,7 @@ enum class Event { Toggle };
 template <class H>
 constexpr auto make_table()
 {
-    return Hsm<H, State, Event>{}
+    return Hsm<H>{}
         .state(State::Running, State::Top)
         .state(State::Idle, State::Top)
         .initial(State::Top, State::Running)

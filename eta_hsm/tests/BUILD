@@ -106,6 +106,15 @@ cc_test(
 )
 
 cc_test(
+    name = "builder_deduction_test",
+    srcs = ["builder_deduction_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "scaling_probe_test",
     srcs = ["scaling_probe_test.cpp"],
     deps = [

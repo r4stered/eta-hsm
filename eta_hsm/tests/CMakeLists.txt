@@ -80,6 +80,13 @@ add_executable(validator_test validator_test.cpp)
 target_link_libraries(validator_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(validator_test)
 
+add_executable(builder_deduction_test builder_deduction_test.cpp)
+target_link_libraries(
+    builder_deduction_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
+)
+gtest_discover_tests(builder_deduction_test)
+
 add_executable(scaling_probe_test scaling_probe_test.cpp)
 target_link_libraries(
     scaling_probe_test
@@ -177,6 +184,24 @@ eta_add_negcompile_test_src(
     "no match.*call|no matching function|entry_Running"
     "eta_hsm/tests/run_hook_negcompile.cpp"
     "RUNHOOK_CASE"
+)
+
+# Builder enum-deduction contract: once Hsm<Host>{} deduces an enum slot, a later
+# call naming a second, different enum in that slot must be a clear compile error
+# (no silent re-deduction or coercion). The diagnostic names the foreign enum.
+eta_add_negcompile_test_src(
+    builder_negcompile_mismatched_state
+    1
+    "cannot convert.*OtherState|OtherState"
+    "eta_hsm/tests/builder_negcompile.cpp"
+    "BUILDER_CASE"
+)
+eta_add_negcompile_test_src(
+    builder_negcompile_mismatched_event
+    2
+    "cannot convert.*OtherEvent|OtherEvent"
+    "eta_hsm/tests/builder_negcompile.cpp"
+    "BUILDER_CASE"
 )
 
 # Contiguous-from-zero enum contract: StaticTimerBank / TimeTracker
