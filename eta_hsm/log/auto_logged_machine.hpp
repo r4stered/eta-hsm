@@ -10,8 +10,9 @@
 //   3  + init               "<name> HSM initializing state <State>"
 //
 // The Logger is a template parameter so consumers route lines to their own sink
-// (e.g. a ROS logger); its sole requirement is a `log(std::string_view)`
-// member that receives one finished line at a time.
+// (e.g. a ROS logger); its sole requirement -- enforced by the Logger concept
+// below -- is a `log(std::string_view)` member that receives one finished line at
+// a time.
 
 #include <string>
 #include <string_view>
@@ -22,15 +23,23 @@
 
 namespace eta_hsm {
 
+// A Logger is any sink with a single `log(std::string_view)` member: one finished
+// line in, nothing out. This is the whole contract the auto-logging layer asks of
+// the type it routes lines to. Constraining the Logger template parameter by it
+// turns a missing or mistyped log() into a diagnostic naming `Logger` at the
+// instantiation site, rather than a deep error inside the observer's log call.
+template <class L>
+concept Logger = requires(L& l, std::string_view line) { l.log(line); };
+
 // The Observer the auto-logging layer installs into a Machine. It renders each
 // notify into a finished line and hands it to the Logger, gated by verbosity. It
 // holds a Logger* (not a value) so the AutoLoggedMachine owns the one sink and
 // the Observer copy the Machine stores points back at it.
-template <class State, class Event, class Logger>
+template <class State, class Event, Logger LoggerT>
 class LoggingObserver {
 public:
     LoggingObserver() = default;
-    LoggingObserver(std::string name, Logger* logger, unsigned verbosity)
+    LoggingObserver(std::string name, LoggerT* logger, unsigned verbosity)
         : name_{std::move(name)}, logger_{logger}, verbosity_{verbosity}
     {}
 
@@ -76,7 +85,7 @@ private:
     }
 
     std::string name_{};
-    Logger* logger_{nullptr};
+    LoggerT* logger_{nullptr};
     unsigned verbosity_{0};
 };
 
@@ -84,13 +93,13 @@ private:
 // name, a Logger sink, and a verbosity level; drive it exactly like a Machine
 // (dispatch / during / identify / isInSubstateOf / host) and the wrapped Machine
 // emits lines through the Logger as it runs.
-template <auto Table, class Logger>
+template <auto Table, Logger LoggerT>
 class AutoLoggedMachine {
 public:
     using State = typename decltype(Table)::State;
     using Event = typename decltype(Table)::Event;
 
-    AutoLoggedMachine(std::string name, Logger& logger, unsigned verbosity = 3)
+    AutoLoggedMachine(std::string name, LoggerT& logger, unsigned verbosity = 3)
         : machine_{Observer{std::move(name), &logger, verbosity}}
     {}
 
@@ -109,7 +118,7 @@ public:
     const auto& host() const { return machine_.host(); }
 
 private:
-    using Observer = LoggingObserver<State, Event, Logger>;
+    using Observer = LoggingObserver<State, Event, LoggerT>;
     Machine<Table, Observer> machine_;
 };
 

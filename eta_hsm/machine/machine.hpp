@@ -65,6 +65,14 @@ consteval bool hook_named(std::meta::info m, std::string_view prefix, std::strin
            id[prefix.size()] == '_' && id.substr(prefix.size() + 1) == state;
 }
 
+// The Host hook surface (entry_<S>, exit_<S>, during_<S>, stateUpdate_<S>,
+// Actions, Guards) is deliberately NOT expressed as a concept: every hook is
+// optional and discovered by reflection here, so a Host legitimately declares
+// only the hooks its States need. There is no mandatory member to constrain, and
+// a concept that required the full surface would over-constrain. The contract is
+// "supply the hooks you use, named <prefix>_<State>"; a name-matching hook of the
+// wrong shape is still rejected (the fixed-arity branch below hard-errors).
+//
 // Call host.<Prefix>_<Name>(args...) for the State `s`, where <Name> is s's
 // enumerator identifier -- but only if the Host actually declares that member and
 // it is callable with `args`. Both the State match and the member detection are
@@ -233,11 +241,29 @@ consteval auto transitions()
 
 }  // namespace detail
 
+// The notify surface a Machine watcher must supply: onEntry(State),
+// onExit(State), onInit(State), and onTransition(from, to, event). It is the
+// enforced form of the contract detail::NullObserver documents by example.
+// Constraining Machine's Observer parameter by this concept rejects a watcher
+// with a mistyped or wrong-arity notify (a misspelled onEntry, a notify taking
+// the wrong shape) at the instantiation site, naming `Observer`, rather than
+// letting it silently no-op or fail deep inside dispatch.
+template <class O, class State, class Event>
+concept Observer = requires(O& o, State state, Event event) {
+    o.onEntry(state);
+    o.onExit(state);
+    o.onInit(state);
+    o.onTransition(state, state, event);
+};
+
 // `Observer` is a seam for watching the machine run: it is notified at the same
 // points the Exit/Action/Entry/init chain already touches, so a logging layer
 // can render Transitions, Entries, Exits, and inits without re-deriving the
-// traversal. It defaults to NullObserver, which compiles away to no runtime cost.
-template <auto Table, class Observer = detail::NullObserver>
+// traversal. It defaults to NullObserver, which compiles away to no runtime cost,
+// and is constrained by the Observer concept so a malformed watcher is rejected
+// by name at instantiation.
+template <auto Table,
+          Observer<typename decltype(Table)::State, typename decltype(Table)::Event> ObserverT = detail::NullObserver>
 class Machine {
 public:
     using Host = typename decltype(Table)::HostType;
@@ -259,7 +285,10 @@ public:
     // Same, but with a caller-supplied Observer in place. The Observer must be
     // installed before the initial Entry chain runs so it can witness the init
     // (the auto-logging layer relies on this to emit construction-time lines).
-    explicit constexpr Machine(Observer observer) : observer_{std::move(observer)} { current_ = enter_initial_chain(); }
+    explicit constexpr Machine(ObserverT observer) : observer_{std::move(observer)}
+    {
+        current_ = enter_initial_chain();
+    }
 
     // The Leaf State the machine currently rests in.
     constexpr State identify() const { return current_; }
@@ -500,7 +529,7 @@ private:
 
     Host host_{};
     State current_{};
-    Observer observer_{};
+    ObserverT observer_{};
 };
 
 }  // namespace eta_hsm

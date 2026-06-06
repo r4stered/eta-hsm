@@ -176,6 +176,24 @@ eta_add_negcompile_test_src(
     "BUILDER_CASE"
 )
 
+# Template-parameter concepts: a Logger missing log() and an Observer with a
+# mistyped notify method must each fail at the instantiation site with the concept
+# named, not a deep error inside the observer or a silent no-op.
+eta_add_negcompile_test_src(
+    concepts_negcompile_bad_logger
+    1
+    "constraint failure.*Logger|satisfaction of 'Logger"
+    "eta_hsm/tests/concepts_negcompile.cpp"
+    "CONCEPTS_CASE"
+)
+eta_add_negcompile_test_src(
+    concepts_negcompile_bad_observer
+    2
+    "constraint failure.*Observer|satisfaction of 'Observer"
+    "eta_hsm/tests/concepts_negcompile.cpp"
+    "CONCEPTS_CASE"
+)
+
 # Compile-time backbone: a planted divergence must fail the BUILD. The
 # differential is run with a reference Fault injected, so production and the
 # reference disagree on the first reachable matched pair (Stopped + Play); the
