@@ -240,3 +240,17 @@ eta_add_negcompile_test_src(
     "eta_hsm/tests/utils_contiguous_negcompile.cpp"
     "CONTIG_CASE"
 )
+
+# ----------------------------------------------------------------------------
+# Codegen gate for the README's event-path performance claims. Disassembles the
+# codegen-probe TU at -O2 and fails if dispatch allocates on the heap or retains
+# an indirect (function-pointer table) call -- the runtime-codegen counterpart to
+# footprint_test.cpp's compile-time structural static_asserts. A pure ctest case
+# with no build target: the script drives the compiler and objdump itself, so it
+# runs wherever the GCC-16 toolchain lives.
+# ----------------------------------------------------------------------------
+add_test(
+    NAME codegen_gate
+    COMMAND bash "${_eta_repo_root}/tools/codegen_gate.sh"
+    WORKING_DIRECTORY "${_eta_repo_root}"
+)

@@ -304,15 +304,20 @@ number that rots. A `Machine<Table>` is:
   storage, no hidden pointers, no growth with the size of the table.
 - **A fully-unrolled linear scan over a `constexpr` table.** Dispatch expands
   (via P1306 expansion statements) to a flat sequence of comparisons over the
-  table's Transition rows — no loop over runtime data, no function-pointer table
-  walk. An unhandled Event defers up the parent chain, rescanning the rows at each
-  level, so the worst case is **O(Transitions × depth)** — not O(depth).
+  table's Transition rows — the per-level scan is unrolled, with no loop over the
+  rows and no function-pointer table walk. An unhandled Event then defers up the
+  parent chain — a runtime walk that rescans the rows at each level — so the worst
+  case is **O(Transitions × depth)**, not O(depth).
 
-These structural claims are **enforced by tests**
-([`eta_hsm/tests/footprint_test.cpp`](eta_hsm/tests/footprint_test.cpp)):
-`static_assert`s pin the footprint shape, the trivially-destructible
-(no-heap-of-its-own) machine, and the non-polymorphic (no-vtable) property on the
-`cd_player` table, so they cannot silently regress.
+These structural claims are **enforced by tests**, so they cannot silently
+regress. `static_assert`s
+([`eta_hsm/tests/footprint_test.cpp`](eta_hsm/tests/footprint_test.cpp)) pin the
+footprint shape, the trivially-destructible (no-heap-of-its-own) machine, and the
+non-polymorphic (no-vtable) property on the `cd_player` table. The two **codegen**
+claims — zero heap allocation and no function-pointer table walk on the event
+path — are read off the `-O2` disassembly by a CI gate
+([`tools/codegen_gate.sh`](tools/codegen_gate.sh)), which fails the build if
+`dispatch` grows a heap call or an indirect call.
 
 > **Deliberately no runtime wall-clock benchmark.** A ns/dispatch figure is
 > hardware-dependent and ages badly; the structural guarantees above are durable
