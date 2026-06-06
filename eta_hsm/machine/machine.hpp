@@ -72,8 +72,10 @@ consteval bool hook_named(std::meta::info m, std::string_view prefix, std::strin
 // resolved at compile time by expanding over the enumerators and the Host's
 // members (P2996 + expansion statements); states with no matching hook expand to
 // nothing. `args` lets the During tick forward an Input to stateUpdate_<Name>;
-// entry/exit/during pass none. A name match whose arity does not fit `args` is
-// skipped (the requires-guard), so a hook is never called with the wrong shape.
+// entry/exit/during pass none. For the variadic stateUpdate prefix a name match
+// whose arity does not fit `args` is skipped (the requires-guard), so the tick is
+// never called with the wrong shape; the fixed-arity prefixes have no such guard,
+// so a name-matching hook of the wrong shape is a hard compile error there.
 template <fixed_string Prefix, class Host, class StateEnum, class... Args>
 void run_hook(Host& host, StateEnum s, Args&&... args)
 {
@@ -89,7 +91,21 @@ void run_hook(Host& host, StateEnum s, Args&&... args)
                 {
                     if constexpr (hook_named(m, Prefix.view(), name))
                     {
-                        if constexpr (requires { (host.[:m:])(std::forward<Args>(args)...); })
+                        // Only the variadic stateUpdate tick is allowed to skip a
+                        // name-matching hook whose arity does not fit the forwarded
+                        // Input (the intentional skip 0005 introduced). For every
+                        // fixed-arity prefix -- entry/exit/during, always called
+                        // with an EMPTY pack -- a name match whose shape is wrong is
+                        // a programmer error, so it must hard-error here rather than
+                        // silently no-op and quietly weaken the hook contract.
+                        if constexpr (Prefix.view() == std::string_view{"stateUpdate"})
+                        {
+                            if constexpr (requires { (host.[:m:])(std::forward<Args>(args)...); })
+                            {
+                                (host.[:m:])(std::forward<Args>(args)...);
+                            }
+                        }
+                        else
                         {
                             (host.[:m:])(std::forward<Args>(args)...);
                         }

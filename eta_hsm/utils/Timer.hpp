@@ -277,6 +277,15 @@ public:
     }
 
 private:
+    // StaticTimerBank indexes this per-group array by the raw GroupEnum value
+    // (static_cast<size_t>(groupId) in addTimer/clearTimer), and sizes it by
+    // enum_count<GroupEnum>() -- the enumerator COUNT, not max+1. So GroupEnum
+    // must be contiguous from 0 (starts at 0, no gaps); otherwise a group id
+    // would index past the array. Make that assumption a compile-time contract.
+    static_assert(enum_is_contiguous_from_zero<GroupEnum>(),
+                  "StaticTimerBank indexes its per-group timer array by the raw enum value; "
+                  "GroupEnum must be contiguous from 0 (no gaps, starts at 0).");
+
     // Using a static array with one timer allowed per state. Sized by the GroupEnum's enumerator
     // count via reflection (replaces the old wise_enum::size<GroupEnum>).
     std::array<Timer<Traits_>, enum_count<GroupEnum>()> mTimers{};

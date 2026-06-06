@@ -97,6 +97,17 @@ function(eta_add_negcompile_test name case pattern)
     )
 endfunction()
 
+# Same harness, but against an arbitrary negcompile TU + case macro (the script
+# takes them as optional 3rd/4th args). Used for the run_hook hook-detection
+# contract; the validator cases above keep the two-argument default form.
+function(eta_add_negcompile_test_src name case pattern src macro)
+    add_test(
+        NAME ${name}
+        COMMAND bash "${_eta_negcompile}" "${case}" "${pattern}" "${src}" "${macro}"
+        WORKING_DIRECTORY "${_eta_repo_root}"
+    )
+endfunction()
+
 eta_add_negcompile_test(validator_negcompile_no_top 1 "no Top State declared")
 eta_add_negcompile_test(
     validator_negcompile_missing_parent
@@ -122,4 +133,48 @@ eta_add_negcompile_test(
     validator_negcompile_duplicate
     6
     "without distinct Guards"
+)
+eta_add_negcompile_test(
+    validator_negcompile_too_many_states
+    7
+    "too many States"
+)
+eta_add_negcompile_test(
+    validator_negcompile_too_many_transitions
+    8
+    "too many Transitions"
+)
+eta_add_negcompile_test(
+    validator_negcompile_too_many_unwired
+    9
+    "too many .unwired States"
+)
+
+# run_hook hook-detection contract: a fixed-arity entry/exit/during hook with the
+# wrong arity must hard-error (not silently no-op). entry_Running(int) is called
+# with an empty pack, so the spliced call has no matching function.
+eta_add_negcompile_test_src(
+    run_hook_negcompile_misshapen_entry
+    1
+    "no match.*call|no matching function|entry_Running"
+    "eta_hsm/tests/run_hook_negcompile.cpp"
+    "RUNHOOK_CASE"
+)
+
+# Contiguous-from-zero enum contract (issue 0008): StaticTimerBank / TimeTracker
+# index per-enumerator arrays by the raw enum value, so a gapped / above-zero
+# enum must fail to compile (static_assert) rather than throw .at() at runtime.
+eta_add_negcompile_test_src(
+    utils_contiguous_negcompile_time_tracker
+    1
+    "contiguous from 0"
+    "eta_hsm/tests/utils_contiguous_negcompile.cpp"
+    "CONTIG_CASE"
+)
+eta_add_negcompile_test_src(
+    utils_contiguous_negcompile_static_timer_bank
+    2
+    "contiguous from 0"
+    "eta_hsm/tests/utils_contiguous_negcompile.cpp"
+    "CONTIG_CASE"
 )

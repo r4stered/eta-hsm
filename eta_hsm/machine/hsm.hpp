@@ -73,7 +73,14 @@ struct Hsm {
     constexpr Hsm state(StateEnum s, StateEnum parent) const
     {
         Hsm next = *this;
-        next.states[next.stateCount++] = StateRow<StateEnum>{s, parent, false, false, {}};
+        // Guard the array write but always record the count, so an overflow past
+        // kMaxStates is representable (stateCount > capacity) without an OOB write;
+        // the validator turns that into a named "too many States" diagnostic.
+        if (next.stateCount < kMaxStates)
+        {
+            next.states[next.stateCount] = StateRow<StateEnum>{s, parent, false, false, {}};
+        }
+        ++next.stateCount;
         return next;
     }
 
@@ -85,12 +92,22 @@ struct Hsm {
         StateRow<StateEnum>* row = next.find(parent);
         if (row == nullptr)
         {
-            next.states[next.stateCount] = StateRow<StateEnum>{parent, parent, true, false, {}};
-            row = &next.states[next.stateCount];
+            // Same overflow handling as state(): guard the write, always count.
+            // When already at capacity we cannot store the new row, so leave the
+            // Initial unset -- the table is already over-large and the validator's
+            // capacity check fires first regardless.
+            if (next.stateCount < kMaxStates)
+            {
+                next.states[next.stateCount] = StateRow<StateEnum>{parent, parent, true, false, {}};
+                row = &next.states[next.stateCount];
+            }
             ++next.stateCount;
         }
-        row->hasInitial = true;
-        row->initial = child;
+        if (row != nullptr)
+        {
+            row->hasInitial = true;
+            row->initial = child;
+        }
         return next;
     }
 
@@ -101,8 +118,12 @@ struct Hsm {
                      bool (Host::*guard)() const = nullptr) const
     {
         Hsm next = *this;
-        next.transitions[next.transitionCount++] =
-            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false, false};
+        if (next.transitionCount < kMaxTransitions)
+        {
+            next.transitions[next.transitionCount] =
+                TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false, false};
+        }
+        ++next.transitionCount;
         return next;
     }
 
@@ -114,8 +135,12 @@ struct Hsm {
                         bool (Host::*guard)() const = nullptr) const
     {
         Hsm next = *this;
-        next.transitions[next.transitionCount++] =
-            TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false, true};
+        if (next.transitionCount < kMaxTransitions)
+        {
+            next.transitions[next.transitionCount] =
+                TransitionRow<StateEnum, EventEnum, Host>{source, event, target, action, guard, false, true};
+        }
+        ++next.transitionCount;
         return next;
     }
 
@@ -126,8 +151,12 @@ struct Hsm {
                            bool (Host::*guard)() const = nullptr) const
     {
         Hsm next = *this;
-        next.transitions[next.transitionCount++] =
-            TransitionRow<StateEnum, EventEnum, Host>{source, event, source, action, guard, true, false};
+        if (next.transitionCount < kMaxTransitions)
+        {
+            next.transitions[next.transitionCount] =
+                TransitionRow<StateEnum, EventEnum, Host>{source, event, source, action, guard, true, false};
+        }
+        ++next.transitionCount;
         return next;
     }
 
@@ -137,7 +166,11 @@ struct Hsm {
     constexpr Hsm unwired(StateEnum s) const
     {
         Hsm next = *this;
-        next.unwiredStates[next.unwiredCount++] = s;
+        if (next.unwiredCount < kMaxStates)
+        {
+            next.unwiredStates[next.unwiredCount] = s;
+        }
+        ++next.unwiredCount;
         return next;
     }
 

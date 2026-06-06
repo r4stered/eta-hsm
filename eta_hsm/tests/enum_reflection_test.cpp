@@ -21,6 +21,16 @@ enum class State { eNone, Stopped, Playing, eTop };
 // the value-matching path beyond the implicit 0,1,2,... case.
 enum class Register : std::uint16_t { Status = 0x10, Control = 0x20, Data = 0xFFFF };
 
+// Enums exercising enum_is_contiguous_from_zero. A clean 0-based enum is the
+// only shape safe to index per-enumerator arrays by the raw enum value.
+enum class Contiguous { A, B, C };                         // 0,1,2  -> contiguous
+enum class StartsAboveZero { A = 1, B = 2, C = 3 };        // 1,2,3  -> NOT
+enum class Gapped { A = 0, B = 1, C = 3 };                 // gap at 2 -> NOT
+enum class ExplicitOutOfRange { A = 0, B = 5, C = 1 };     // 5 >= count -> NOT
+// Non-int underlying type but still contiguous from 0.
+enum class ContiguousByte : std::uint8_t { A, B, C, D };   // 0,1,2,3 -> contiguous
+enum class Empty {};                                       // no enumerators -> trivially true
+
 TEST(EnumReflection, CountsEnumeratorsOfPlainEnumClass) { EXPECT_EQ(eta_hsm::enum_count<Color>(), 3u); }
 
 TEST(EnumReflection, NameRoundTripsKnownEnumerator)
@@ -66,6 +76,31 @@ TEST(EnumReflection, WorksWithNonIntUnderlyingType)
     constexpr auto values = eta_hsm::enum_values<Register>();
     EXPECT_EQ(values[1], Register::Control);
 }
+
+TEST(EnumReflection, ContiguousFromZeroAcceptsCleanZeroBasedEnum)
+{
+    EXPECT_TRUE(eta_hsm::enum_is_contiguous_from_zero<Contiguous>());
+    EXPECT_TRUE(eta_hsm::enum_is_contiguous_from_zero<ContiguousByte>());
+    // An enum with no enumerators is trivially contiguous (nothing to index).
+    EXPECT_TRUE(eta_hsm::enum_is_contiguous_from_zero<Empty>());
+}
+
+TEST(EnumReflection, ContiguousFromZeroRejectsNonContiguousEnums)
+{
+    EXPECT_FALSE(eta_hsm::enum_is_contiguous_from_zero<StartsAboveZero>());
+    EXPECT_FALSE(eta_hsm::enum_is_contiguous_from_zero<Gapped>());
+    EXPECT_FALSE(eta_hsm::enum_is_contiguous_from_zero<ExplicitOutOfRange>());
+    EXPECT_FALSE(eta_hsm::enum_is_contiguous_from_zero<Register>());
+}
+
+// enum_is_contiguous_from_zero must be a compile-time predicate too: these are
+// the exact form the StaticTimerBank / TimeTracker static_asserts rely on.
+static_assert(eta_hsm::enum_is_contiguous_from_zero<Contiguous>());
+static_assert(eta_hsm::enum_is_contiguous_from_zero<ContiguousByte>());
+static_assert(eta_hsm::enum_is_contiguous_from_zero<Empty>());
+static_assert(!eta_hsm::enum_is_contiguous_from_zero<StartsAboveZero>());
+static_assert(!eta_hsm::enum_is_contiguous_from_zero<Gapped>());
+static_assert(!eta_hsm::enum_is_contiguous_from_zero<ExplicitOutOfRange>());
 
 // All three helpers must be usable in constant expressions. These checks run at
 // compile time; if any helper were not constexpr/consteval, this file would

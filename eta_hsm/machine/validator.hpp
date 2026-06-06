@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <string_view>
 
+#include "eta_hsm/machine/hsm.hpp"  // kMaxStates / kMaxTransitions, plus the table type
 #include "eta_hsm/reflect/enum_reflection.hpp"
 
 namespace eta_hsm {
@@ -24,6 +25,9 @@ namespace eta_hsm {
 // and the first failure wins, so a report carries exactly one error.
 enum class ValidationError {
     None,
+    TooManyStates,  // check 0: more declared States than kMaxStates fit the table
+    TooManyTransitions,  // check 0: more Transitions than kMaxTransitions fit the table
+    TooManyUnwired,  // check 0: more .unwired States than kMaxStates fit the table
     NoTopState,  // check 1: zero Top States
     MultipleTopStates,  // check 1: more than one Top State
     MissingParent,  // check 2: a non-Top State's parent is not declared
@@ -98,6 +102,30 @@ template <auto Table>
 consteval ValidationReport validate()
 {
     using State = typename decltype(Table)::State;
+
+    // Check 0: capacity. The builder records every declared element in its count
+    // even past the fixed array capacity (the write is dropped, the count is not),
+    // so an over-large table is representable as count > capacity. This check runs
+    // FIRST because every later check loops up to these counts and would read out
+    // of the backing arrays on an overflowed table.
+    if (Table.stateCount > kMaxStates)
+    {
+        detail::MsgBuf m;
+        m += "too many States (limit 64); raise kMaxStates";
+        return detail::failure(ValidationError::TooManyStates, m);
+    }
+    if (Table.transitionCount > kMaxTransitions)
+    {
+        detail::MsgBuf m;
+        m += "too many Transitions (limit 256); raise kMaxTransitions";
+        return detail::failure(ValidationError::TooManyTransitions, m);
+    }
+    if (Table.unwiredCount > kMaxStates)
+    {
+        detail::MsgBuf m;
+        m += "too many .unwired States (limit 64); raise kMaxStates";
+        return detail::failure(ValidationError::TooManyUnwired, m);
+    }
 
     // Check 1: exactly one Top State exists.
     std::size_t tops = 0;
@@ -259,6 +287,15 @@ consteval ValidationReport validate()
     // Check 6: no two Transitions share a (Source, Event) without distinct Guards.
     // A pair on the same Source and Event is ambiguous unless both carry a non-null
     // Guard and the two Guards differ -- the only case where dispatch can pick one.
+    //
+    // NOTE: "distinct" is enforced at the POINTER level, not the semantic level. Two
+    // rows pass as long as their Guard member-pointers differ; the check does NOT
+    // verify the Guards are logically mutually exclusive. So a table with guardA and
+    // guardB that can both be true at runtime validates, and dispatch deterministically
+    // takes whichever row was declared FIRST (the first-match policy in machine.hpp).
+    // First-declared-wins is therefore the tiebreaker when two Guards both hold -- a
+    // deliberate, documented policy, not a checked invariant. (A future reachability
+    // check could tighten this; see issue 0016's differential harness.)
     for (std::size_t i = 0; i < Table.transitionCount; ++i)
     {
         for (std::size_t j = i + 1; j < Table.transitionCount; ++j)

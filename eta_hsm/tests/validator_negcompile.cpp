@@ -25,7 +25,7 @@ enum class S { Top, A, B, C };
 enum class E { Go };
 
 #ifndef VALIDATOR_CASE
-#error "define VALIDATOR_CASE (1..6) to select a negative case"
+#error "define VALIDATOR_CASE (1..9) to select a negative case"
 #endif
 
 #if VALIDATOR_CASE == 1
@@ -60,8 +60,52 @@ inline constexpr auto table = Hsm<H, S, E>{}
                                   .on(S::A, E::Go, S::B)
                                   .on(S::A, E::Go, S::C);
 
+#elif VALIDATOR_CASE == 7
+// Capacity: more States than kMaxStates (64). One Top row from .initial plus 64
+// .state rows = 65 declared States > the limit, caught before any other check.
+enum class Big { Top };
+consteval auto makeBigStates()
+{
+    Hsm<H, Big, E> t = Hsm<H, Big, E>{}.initial(Big::Top, static_cast<Big>(1));
+    for (int i = 1; i <= 64; ++i)
+    {
+        t = t.state(static_cast<Big>(i), Big::Top);
+    }
+    return t;  // stateCount == 65 > kMaxStates
+}
+inline constexpr auto table = makeBigStates();
+
+#elif VALIDATOR_CASE == 8
+// Capacity: more Transitions than kMaxTransitions (256). A tiny valid state set
+// plus 257 .on rows = transitionCount 257 > the limit, caught first.
+consteval auto makeBigTransitions()
+{
+    Hsm<H, S, E> t = Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).unwired(S::B).unwired(S::C);
+    for (int i = 0; i <= 256; ++i)
+    {
+        t = t.on(S::A, E::Go, S::A);
+    }
+    return t;  // transitionCount == 257 > kMaxTransitions
+}
+inline constexpr auto table = makeBigTransitions();
+
+#elif VALIDATOR_CASE == 9
+// Capacity: more .unwired States than kMaxStates (64). 65 .unwired calls =
+// unwiredCount 65 > the limit, caught first.
+enum class Big { Top };
+consteval auto makeBigUnwired()
+{
+    Hsm<H, Big, E> t = Hsm<H, Big, E>{}.initial(Big::Top, static_cast<Big>(1));
+    for (int i = 1; i <= 65; ++i)
+    {
+        t = t.unwired(static_cast<Big>(i));
+    }
+    return t;  // unwiredCount == 65 > kMaxStates
+}
+inline constexpr auto table = makeBigUnwired();
+
 #else
-#error "VALIDATOR_CASE must be 1..6"
+#error "VALIDATOR_CASE must be 1..9"
 #endif
 
 }  // namespace

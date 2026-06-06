@@ -202,5 +202,44 @@ TEST(Validator, DistinctGuardsOnSameSourceEventAccepted)
     EXPECT_EQ(report.error, ValidationError::None);
 }
 
+// Capacity boundary: a table filled to exactly kMaxStates declared States (one
+// Top plus kMaxStates-1 children) is at capacity, not over it, so the check-0
+// capacity guard must NOT false-positive -- this table validates cleanly.
+enum class Big { Top };
+inline constexpr auto at_capacity_states = [] {
+    auto t = Hsm<H, Big, E>{}.initial(Big::Top, static_cast<Big>(1));
+    for (int i = 1; i < static_cast<int>(kMaxStates); ++i)
+    {
+        t = t.state(static_cast<Big>(i), Big::Top);
+    }
+    return t;  // stateCount == kMaxStates exactly
+}();
+TEST(Validator, AtStateCapacityDoesNotFalsePositive)
+{
+    static_assert(at_capacity_states.stateCount == kMaxStates);
+    constexpr auto report = validate<at_capacity_states>();
+    EXPECT_NE(report.error, ValidationError::TooManyStates);
+}
+
+// Over capacity: one more State than kMaxStates pushes stateCount past the array
+// without an OOB write (the builder drops the write, keeps the count), and the
+// validator reports the named capacity error.
+inline constexpr auto over_capacity_states = [] {
+    auto t = Hsm<H, Big, E>{}.initial(Big::Top, static_cast<Big>(1));
+    for (int i = 1; i <= static_cast<int>(kMaxStates); ++i)
+    {
+        t = t.state(static_cast<Big>(i), Big::Top);
+    }
+    return t;  // stateCount == kMaxStates + 1
+}();
+TEST(Validator, OverStateCapacityRejected)
+{
+    static_assert(over_capacity_states.stateCount == kMaxStates + 1);
+    constexpr auto report = validate<over_capacity_states>();
+    static_assert(!report.ok);
+    EXPECT_FALSE(report.ok);
+    EXPECT_EQ(report.error, ValidationError::TooManyStates);
+}
+
 }  // namespace
 }  // namespace eta_hsm::validator_test

@@ -47,6 +47,15 @@ private:
     /// Index the per-state arrays by the enum's underlying integer value.
     using Underlying = typename std::underlying_type<StateEnum>::type;
 
+    // TimeTracker indexes mEntryTimes/mInState by the raw StateEnum value
+    // (static_cast<Underlying>(state) in enter/exit/timeInState) and sizes them by
+    // enum_count<StateEnum>() -- the enumerator COUNT, not max+1. So StateEnum must
+    // be contiguous from 0; otherwise a state would index past the array. Make that
+    // assumption a compile-time contract.
+    static_assert(enum_is_contiguous_from_zero<StateEnum>(),
+                  "TimeTracker indexes per-State arrays by the raw enum value; "
+                  "StateEnum must be contiguous from 0 (no gaps, starts at 0).");
+
     /// A list of entry times for each state. Sized by the StateEnum's enumerator count via
     /// reflection (replaces the old wise_enum::size<StateEnum>).
     std::array<std::chrono::time_point<LocalClock>, enum_count<StateEnum>()> mEntryTimes{};
