@@ -28,7 +28,7 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
 
 # Bazelisk (resolves the version pinned by .bazelversion at run time).
 RUN curl -fsSL -o /usr/local/bin/bazel \
-        https://github.com/bazelbuild/bazelisk/releases/download/v1.25.0/bazelisk-linux-arm64 \
+        https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-arm64 \
  && chmod +x /usr/local/bin/bazel
 
 ENV CC=/usr/bin/gcc-16 \
