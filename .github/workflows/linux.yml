@@ -157,6 +157,40 @@ jobs:
           message: ${{ steps.cov.outputs.pct }}%
           color: ${{ steps.cov.outputs.color }}
 
+  # Publishes an overall pipeline pass/fail badge to the SAME gist that backs the
+  # coverage badge (a second file, eta-hsm-ci.json, in the same gist), via the same
+  # dynamic-badges-action. Runs after every other job and reports `failing` if any of
+  # them did not succeed, `passing` otherwise. Only on a direct push to v2 -- PRs from
+  # forks have no access to the gist secret. The CI file rides the GIST_ID/GIST_SECRET
+  # set up for coverage above; no extra setup beyond adding eta-hsm-ci.json to the URL
+  # in README.md.
+  ci_status:
+    runs-on: ubuntu-latest
+    needs: [cpp_linting, cmake_format, cmake_tests, sanitizers, coverage, bazel_tests]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/v2'
+    steps:
+      - name: Resolve pipeline status
+        id: status
+        # join() folds every needed job's result into one string; a failed or
+        # cancelled job anywhere flips the badge to failing.
+        run: |
+          if echo '${{ join(needs.*.result, ',') }}' | grep -qE 'failure|cancelled'; then
+            echo "message=failing" >>"$GITHUB_OUTPUT"
+            echo "color=red" >>"$GITHUB_OUTPUT"
+          else
+            echo "message=passing" >>"$GITHUB_OUTPUT"
+            echo "color=brightgreen" >>"$GITHUB_OUTPUT"
+          fi
+      - name: Update CI badge gist
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ vars.GIST_ID }}
+          filename: eta-hsm-ci.json
+          label: CI
+          message: ${{ steps.status.outputs.message }}
+          color: ${{ steps.status.outputs.color }}
+
   bazel_tests:
     runs-on: ubuntu-latest
     container: ubuntu:26.04

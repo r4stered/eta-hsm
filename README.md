@@ -1,5 +1,6 @@
 # eta-hsm
 
+[![CI](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/r4stered/626da4c11b8f9f89663a02451ffa396b/raw/eta-hsm-ci.json)](https://github.com/r4stered/eta-hsm/actions/workflows/linux.yml)
 [![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/r4stered/626da4c11b8f9f89663a02451ffa396b/raw/eta-hsm-coverage.json)](https://github.com/r4stered/eta-hsm/actions/workflows/linux.yml)
 
 A C++ library for defining and running **hierarchical state machines** (HSMs).
@@ -57,6 +58,234 @@ The same table drives the machine, the compile-time
 [validator](#testing), and the [diagram emitter](#diagrams) — one definition,
 three consumers, no chance of drift. The data-oriented core has no vtable and no
 heap on the event path; see [Performance](#performance).
+
+## Worked examples
+
+Each snippet below is a complete, self-contained program in the style of the one
+above, and builds against the real headers via `./docker_build`.
+
+### Guards
+
+A Transition row can carry a Guard: a `bool (Host::*)() const` predicate passed as
+the last argument to `.on(...)`. A guarded row fires only when its Guard returns
+true; otherwise the Event keeps deferring up the parent chain, exactly as an
+unhandled Event does. (This is the `Hammer [drawer_jammed]` row in the
+[diagram](#diagrams) below, shown here in miniature.)
+
+```cpp
+#include <cassert>
+
+#include "eta_hsm/machine/hsm.hpp"
+#include "eta_hsm/machine/machine.hpp"
+
+using namespace eta_hsm;
+
+enum class State { Top, Locked, Open };
+enum class Event { Push };
+
+struct Door {
+    bool unlocked = false;
+    // A Guard is a `bool (Door::*)() const` predicate the row is gated on.
+    bool is_unlocked() const { return unlocked; }
+    void swing() {}
+};
+
+// A guarded row fires only when its Guard returns true; otherwise the Event keeps
+// deferring up the parent chain. Push opens the door only when it is unlocked.
+inline constexpr auto door =
+    Hsm<Door>{}
+        .state(State::Locked, State::Top)
+        .state(State::Open, State::Top)
+        .initial(State::Top, State::Locked)
+        .on(State::Locked, Event::Push, State::Open, &Door::swing, &Door::is_unlocked);
+
+int main()
+{
+    Machine<door> m;             // rests in Locked
+    m.dispatch(Event::Push);     // Guard false -> unhandled, no State change
+    assert(m.identify() == State::Locked);
+
+    m.host().unlocked = true;
+    m.dispatch(Event::Push);     // Guard true -> Locked -> Open
+    assert(m.identify() == State::Open);
+}
+```
+
+### Deeper hierarchy
+
+States nest: each State names its parent, and a Composite names its Initial
+Substate. Construction drills from Top down that Initial-Substate chain to the
+resting Leaf, firing each Entry hook top-down. An Event the current Leaf does not
+handle defers up the parent chain to the nearest ancestor that does — so a parent
+can handle an Event on behalf of all its children. On a Transition the Exit hooks
+fire bottom-up and the Entry hooks top-down, with the Action in between.
+
+```cpp
+#include <cassert>
+#include <string>
+
+#include "eta_hsm/machine/hsm.hpp"
+#include "eta_hsm/machine/machine.hpp"
+
+using namespace eta_hsm;
+
+// Top
+//  |- Active          (Composite, Initial Substate -> Idle)
+//  |   |- Idle        (Leaf)
+//  |   '- Running     (Leaf)
+//  '- Off             (Leaf)
+enum class State { Top, Active, Idle, Running, Off };
+enum class Event { Start, Shutdown };
+
+struct Engine {
+    std::string log;  // records Entry/Exit hooks so the ordered chain is observable
+    void entry_Active() { log += "+Active;"; }
+    void exit_Active() { log += "-Active;"; }
+    void entry_Idle() { log += "+Idle;"; }
+    void exit_Idle() { log += "-Idle;"; }
+    void entry_Running() { log += "+Running;"; }
+    void exit_Running() { log += "-Running;"; }
+    void entry_Off() { log += "+Off;"; }
+};
+
+inline constexpr auto engine =
+    Hsm<Engine>{}
+        .state(State::Active, State::Top)
+        .state(State::Idle, State::Active)
+        .state(State::Running, State::Active)
+        .state(State::Off, State::Top)
+        .initial(State::Top, State::Active)  // construction drills Top -> Active -> Idle
+        .initial(State::Active, State::Idle)
+        .on(State::Idle, Event::Start, State::Running)
+        // Shutdown is declared on the parent Active, so a child that does not handle
+        // it defers up the parent chain to this row.
+        .on(State::Active, Event::Shutdown, State::Off);
+
+int main()
+{
+    Machine<engine> m;  // the Entry chain runs top-down on the way in
+    assert(m.host().log == "+Active;+Idle;");
+    assert(m.identify() == State::Idle);
+
+    m.host().log.clear();
+    m.dispatch(Event::Start);  // Idle -> Running, both under Active (Active stays active)
+    assert(m.host().log == "-Idle;+Running;");
+
+    m.host().log.clear();
+    m.dispatch(Event::Shutdown);  // Running defers to Active; Exit fires bottom-up
+    assert(m.host().log == "-Running;-Active;+Off;");
+    assert(m.identify() == State::Off);
+}
+```
+
+A larger two-level machine — cross-branch Transitions, deferral to an ancestor, and
+the External-vs-Local distinction on a parent/child Transition — lives in
+[`eta_hsm/examples/nested/nested.hpp`](eta_hsm/examples/nested/nested.hpp).
+
+### Observer / logging
+
+`Machine<Table, Observer>` takes an optional second parameter constrained by the
+**`Observer`** concept — a watcher supplying `onEntry` / `onExit` / `onInit` /
+`onTransition`. It defaults to a no-op that compiles away to nothing; supply one
+and it is notified at each point of the Exit/Action/Entry/init chain, so a logging
+layer can render the run without re-deriving the traversal. The bundled
+`LoggingObserver` renders each notify into a line via `std::format` and hands it to
+a **`Logger`** — a second named concept, satisfied by any sink with a single
+`log(std::string_view)` member, so lines can be routed to any backend.
+`AutoLoggedMachine` wires the two together: drive it like a Machine and it logs as
+it runs.
+
+```cpp
+#include <print>
+#include <string_view>
+
+#include "eta_hsm/log/auto_logged_machine.hpp"
+#include "eta_hsm/machine/hsm.hpp"
+
+using namespace eta_hsm;
+
+enum class State { Top, Stopped, Playing };
+enum class Event { Play, Stop };
+
+struct Player {
+    void entry_Playing() {}
+};
+
+inline constexpr auto player = Hsm<Player>{}
+                                   .state(State::Stopped, State::Top)
+                                   .state(State::Playing, State::Top)
+                                   .initial(State::Top, State::Stopped)
+                                   .on(State::Stopped, Event::Play, State::Playing)
+                                   .on(State::Playing, Event::Stop, State::Stopped);
+
+// A Logger is any sink with a single `log(std::string_view)` member -- the whole
+// contract the `Logger` concept enforces. This one renders each line to stdout.
+struct ConsoleLogger {
+    void log(std::string_view line) { std::println("{}", line); }
+};
+
+int main()
+{
+    ConsoleLogger logger;
+    AutoLoggedMachine<player, ConsoleLogger> m{"cd", logger, /*verbosity=*/1};
+    m.dispatch(Event::Play);
+    m.dispatch(Event::Stop);
+}
+```
+
+The Logger sees one finished line per step. At verbosity 1 (Transitions only; 2
+adds Entry/Exit, 3 adds init) the run above prints:
+
+```text
+cd HSM transitioning from Stopped to Playing due to Play
+cd HSM transitioning from Playing to Stopped due to Stop
+```
+
+### EventBucket
+
+`EventBucket` queues Events for later draining — `OrderedEventBucket` preserves
+insertion order, `PrioritizedEventBucket` orders by enumerator priority (lower
+value = higher priority). `getEvent()` removes and returns the next Event as a
+`std::optional<Event>`, yielding `std::nullopt` once empty, so a drain loop ends
+without any `eNone` sentinel. `PrioritizedEventBucket::top()` peeks the
+highest-priority Event without removing it and carries a `pre(!empty())` contract:
+peeking an empty bucket traps rather than fabricating a value.
+
+```cpp
+#include <cassert>
+#include <optional>
+
+#include "eta_hsm/utils/EventBucket.hpp"
+
+using namespace eta_hsm::utils;
+
+// Lower enumerator value == higher priority for the prioritized bucket.
+enum class Event { Eject, Play, Stop };
+
+int main()
+{
+    OrderedEventBucket<Event> queue;
+    queue.addEvent(Event::Play);
+    queue.addEvent(Event::Stop);
+
+    // Drain: getEvent() yields std::optional<Event>, std::nullopt once empty, so the
+    // loop ends with no eNone sentinel to test for. Feed each to a Machine with
+    // m.dispatch(*evt).
+    while (std::optional<Event> evt = queue.getEvent())
+    {
+        // m.dispatch(*evt);
+        (void)evt;
+    }
+    assert(queue.empty());
+
+    PrioritizedEventBucket<Event> urgent;
+    urgent.addEvent(Event::Stop);
+    urgent.addEvent(Event::Eject);         // lower enumerator -> higher priority
+    assert(urgent.top() == Event::Eject);  // top() carries pre(!empty()): peeking an
+                                           // empty bucket is a contract violation, not a sentinel
+    assert(urgent.getEvent() == Event::Eject);
+}
+```
 
 ## Performance
 
@@ -244,6 +473,55 @@ systems, and
 [`enum_reflection_test.cpp`](eta_hsm/tests/enum_reflection_test.cpp)
 covers the public enum reflection utility (names, counts, values, sentinels,
 non-`int` underlying types, and compile-time use).
+
+### Differential verification
+
+Beyond the unit suite, the machine is checked against an independent **reference
+interpreter** — a deliberately naive oracle that walks a runtime view of the same
+`constexpr` table. Production dispatch is asserted to agree with it on the resting
+Leaf and the full Exit/Action/Entry transcript, with no hand-authored expected
+strings — every expectation is computed from the table:
+
+```cpp
+#include <cassert>
+
+#include "eta_hsm/examples/cd_player/cd_player.hpp"
+#include "eta_hsm/machine/machine.hpp"
+#include "eta_hsm/reference/reference_interpreter.hpp"
+
+using namespace eta_hsm::examples::cd_player;
+using eta_hsm::Machine;
+using eta_hsm::reference::makeTableView;
+using eta_hsm::reference::referenceStep;
+using eta_hsm::reference::renderOn;
+
+int main()
+{
+    // The reference interpreter is a naive, independent oracle: it walks a runtime
+    // view of the same constexpr table. Production dispatch is asserted to agree.
+    static const auto view = makeTableView<player>();
+    Player const host{};
+
+    // Reference: the expected resting Leaf and Exit/Action/Entry transcript.
+    auto const plan = referenceStep(view, State::Stopped, Event::Play, host);
+
+    // Production: drive the live Machine through the same step.
+    Machine<player> m;
+    m.host().log.clear();  // drop the construction-time Entry chain
+    m.dispatch(Event::Play);
+
+    assert(m.identify() == plan.leaf);           // Playing
+    assert(m.host().log == renderOn(plan).log);  // "-Stopped;start_playback;+Playing;"
+}
+```
+
+This single step is the seed of a generative harness built on the same oracle: an
+exhaustive BFS over every reachable `(State, Event)`
+([`reference/backbone.hpp`](eta_hsm/reference/backbone.hpp)) and a seeded
+random-walk differential with a bisect shrinker that minimizes any divergence to
+its smallest reproducing Event sequence
+([`reference/random_walk.hpp`](eta_hsm/reference/random_walk.hpp)), both layered on
+[`reference/reference_interpreter.hpp`](eta_hsm/reference/reference_interpreter.hpp).
 
 ## Linting & formatting
 
