@@ -11,6 +11,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         g++-16 \
         gcc-16 \
+        binutils \
         cmake \
         make \
         ninja-build \

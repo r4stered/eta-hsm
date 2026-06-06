@@ -41,7 +41,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            g++-16 gcc-16 cmake ninja-build make git ca-certificates
+            g++-16 gcc-16 binutils cmake ninja-build make git ca-certificates
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
       - name: Build and test (CMake)
@@ -72,7 +72,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            g++-16 gcc-16 cmake ninja-build make git ca-certificates
+            g++-16 gcc-16 binutils cmake ninja-build make git ca-certificates
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
       - name: Build and test under ASan + UBSan
@@ -96,7 +96,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            g++-16 gcc-16 cmake ninja-build make git ca-certificates gcovr
+            g++-16 gcc-16 binutils cmake ninja-build make git ca-certificates gcovr
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
       - name: Measure coverage

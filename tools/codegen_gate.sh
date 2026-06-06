@@ -36,7 +36,7 @@ readonly SRC="eta_hsm/probe/codegen_probe_main.cpp"
 readonly FLAGS=(-std=c++26 -freflection -fcontracts -O2 -I .)
 
 # Allocation symbols any heap use on the event path would call, demangled or not.
-readonly ALLOC_RE='operator new|operator delete|_Znw[mj]|_Zna[mj]|_Zd[lap]v|\bmalloc\b|\bcalloc\b|\brealloc\b|\bfree\b'
+readonly ALLOC_RE='operator new|operator delete|_Znw[mj]|_Zna[mj]|_Zd[la]P|\bmalloc\b|\bcalloc\b|\brealloc\b|\bfree\b'
 
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
