@@ -85,6 +85,13 @@ install(
 )
 
 # ----------------------------------------------------------------------------
+# Standalone diagram tool: include a machine's header, emit its diagram from the
+# constexpr table. cd_player is the demonstrator (its diagram has a golden test).
+# ----------------------------------------------------------------------------
+add_executable(cd_player_diagram diagram/cd_player_diagram_main.cpp)
+target_link_libraries(cd_player_diagram PRIVATE eta_hsm)
+
+# ----------------------------------------------------------------------------
 # Tests (GTest only).
 # ----------------------------------------------------------------------------
 if(BUILD_TESTING)

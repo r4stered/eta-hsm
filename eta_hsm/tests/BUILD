@@ -37,6 +37,21 @@ cc_test(
 )
 
 cc_test(
+    name = "diagram_test",
+    srcs = [
+        "diagram_test.cpp",
+        # Goldens are #included as raw-string literals, so the golden match needs
+        # no file IO and works identically under CMake and Bazel.
+        "golden/cd_player.mmd.inc",
+        "golden/cd_player.puml.inc",
+    ],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "during_test",
     srcs = ["during_test.cpp"],
     deps = [

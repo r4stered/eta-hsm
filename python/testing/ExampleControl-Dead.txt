@@ -1,4 +1,0 @@
-@startuml
-state Dead {
-}
-@enduml

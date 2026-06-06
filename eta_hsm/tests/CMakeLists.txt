@@ -37,6 +37,16 @@ add_executable(nested_test nested_test.cpp)
 target_link_libraries(nested_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(nested_test)
 
+add_executable(diagram_test diagram_test.cpp)
+target_link_libraries(diagram_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
+# The repo root lets the README-sync test find README.md (it is skipped when this
+# is undefined, e.g. under Bazel).
+target_compile_definitions(
+    diagram_test
+    PRIVATE ETA_REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../.."
+)
+gtest_discover_tests(diagram_test)
+
 add_executable(during_test during_test.cpp)
 target_link_libraries(during_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(during_test)
@@ -100,10 +110,18 @@ endfunction()
 # Same harness, but against an arbitrary negcompile TU + case macro (the script
 # takes them as optional 3rd/4th args). Used for the run_hook hook-detection
 # contract; the validator cases above keep the two-argument default form.
-function(eta_add_negcompile_test_src name case pattern src macro)
+function(
+    eta_add_negcompile_test_src
+    name
+    case
+    pattern
+    src
+    macro
+)
     add_test(
         NAME ${name}
-        COMMAND bash "${_eta_negcompile}" "${case}" "${pattern}" "${src}" "${macro}"
+        COMMAND
+            bash "${_eta_negcompile}" "${case}" "${pattern}" "${src}" "${macro}"
         WORKING_DIRECTORY "${_eta_repo_root}"
     )
 endfunction()

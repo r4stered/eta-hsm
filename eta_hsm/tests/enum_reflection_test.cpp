@@ -23,13 +23,13 @@ enum class Register : std::uint16_t { Status = 0x10, Control = 0x20, Data = 0xFF
 
 // Enums exercising enum_is_contiguous_from_zero. A clean 0-based enum is the
 // only shape safe to index per-enumerator arrays by the raw enum value.
-enum class Contiguous { A, B, C };                         // 0,1,2  -> contiguous
-enum class StartsAboveZero { A = 1, B = 2, C = 3 };        // 1,2,3  -> NOT
-enum class Gapped { A = 0, B = 1, C = 3 };                 // gap at 2 -> NOT
-enum class ExplicitOutOfRange { A = 0, B = 5, C = 1 };     // 5 >= count -> NOT
+enum class Contiguous { A, B, C };  // 0,1,2  -> contiguous
+enum class StartsAboveZero { A = 1, B = 2, C = 3 };  // 1,2,3  -> NOT
+enum class Gapped { A = 0, B = 1, C = 3 };  // gap at 2 -> NOT
+enum class ExplicitOutOfRange { A = 0, B = 5, C = 1 };  // 5 >= count -> NOT
 // Non-int underlying type but still contiguous from 0.
-enum class ContiguousByte : std::uint8_t { A, B, C, D };   // 0,1,2,3 -> contiguous
-enum class Empty {};                                       // no enumerators -> trivially true
+enum class ContiguousByte : std::uint8_t { A, B, C, D };  // 0,1,2,3 -> contiguous
+enum class Empty {};  // no enumerators -> trivially true
 
 TEST(EnumReflection, CountsEnumeratorsOfPlainEnumClass) { EXPECT_EQ(eta_hsm::enum_count<Color>(), 3u); }
 

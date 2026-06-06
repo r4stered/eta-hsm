@@ -53,7 +53,7 @@ TimeTracker<NonContiguousStateEnum, DummyClock> gTracker{gClock};
 struct DummyEvent {
     enum class E { eNone };
 };
-StaticTimerBank<TimerTraits<DummyClock, DummyEvent::E, GappedGroupEnum>> gBank{};
+StaticTimerBank<TimerTraits<DummyClock, DummyEvent::E, GappedGroupEnum> > gBank{};
 
 #else
 #error "CONTIG_CASE must be 1 or 2"
