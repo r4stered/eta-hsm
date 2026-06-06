@@ -20,6 +20,7 @@
 // has none, so its diagram renders cleanly.
 
 #include <cstddef>
+#include <format>
 #include <string>
 
 #include "eta_hsm/diagram/diagram.hpp"
@@ -38,15 +39,15 @@ void render_state_mermaid(std::string& out, State s, std::size_t indent)
 
     if (!has_children<Table>(s))
     {
-        out += pad + name_of(s) + "\n";  // Leaf: bare declaration.
+        out += std::format("{}{}\n", pad, name_of(s));  // Leaf: bare declaration.
         return;
     }
 
     std::string const inner(4 * (indent + 1), ' ');
-    out += pad + "state " + name_of(s) + " {\n";
+    out += std::format("{}state {} {{\n", pad, name_of(s));
     if (auto const* row = state_row<Table>(s); row != nullptr && row->hasInitial)
     {
-        out += inner + "[*] --> " + name_of(row->initial) + "\n";
+        out += std::format("{}[*] --> {}\n", inner, name_of(row->initial));
     }
     for (std::size_t i = 0; i < Table.stateCount; ++i)
     {
@@ -55,7 +56,7 @@ void render_state_mermaid(std::string& out, State s, std::size_t indent)
             render_state_mermaid<Table>(out, Table.states[i].state, indent + 1);
         }
     }
-    out += pad + "}\n";
+    out += std::format("{}}}\n", pad);
 }
 
 }  // namespace detail
@@ -75,7 +76,7 @@ inline std::string to_mermaid()
     // its Initial-Substate arrow, then its children, then every Transition flat.
     if (auto const* row = state_row<Table>(top); row != nullptr && row->hasInitial)
     {
-        out += "    [*] --> " + name_of(row->initial) + "\n";
+        out += std::format("    [*] --> {}\n", name_of(row->initial));
     }
     for (std::size_t i = 0; i < Table.stateCount; ++i)
     {
@@ -90,11 +91,11 @@ inline std::string to_mermaid()
         std::string const label = transition_label(tr, actions[i], guards[i]);
         if (tr.internal)
         {
-            out += "    " + name_of(tr.source) + " : " + label + "\n";
+            out += std::format("    {} : {}\n", name_of(tr.source), label);
         }
         else
         {
-            out += "    " + name_of(tr.source) + " --> " + name_of(tr.target) + " : " + label + "\n";
+            out += std::format("    {} --> {} : {}\n", name_of(tr.source), name_of(tr.target), label);
         }
     }
     return out;

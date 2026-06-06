@@ -8,6 +8,7 @@
 // straight from the table via reflection, so the diagram tracks the machine.
 
 #include <cstddef>
+#include <format>
 #include <string>
 
 #include "eta_hsm/diagram/diagram.hpp"
@@ -26,10 +27,10 @@ void render_state_plantuml(std::string& out, State s, std::size_t indent)
     std::string const pad(2 * indent, ' ');
     std::string const inner(2 * (indent + 1), ' ');
 
-    out += pad + "state " + name_of(s) + " {\n";
+    out += std::format("{}state {} {{\n", pad, name_of(s));
     if (auto const* row = state_row<Table>(s); row != nullptr && row->hasInitial)
     {
-        out += inner + "[*] --> " + name_of(row->initial) + "\n";
+        out += std::format("{}[*] --> {}\n", inner, name_of(row->initial));
     }
     // Children in declaration order: rows whose parent is `s` (excluding `s`
     // itself, since the Top State is its own parent).
@@ -40,7 +41,7 @@ void render_state_plantuml(std::string& out, State s, std::size_t indent)
             render_state_plantuml<Table>(out, Table.states[i].state, indent + 1);
         }
     }
-    out += pad + "}\n";
+    out += std::format("{}}}\n", pad);
 }
 
 }  // namespace detail
@@ -56,10 +57,10 @@ inline std::string to_plantuml()
     State const top = top_state<Table>();
 
     std::string out = "@startuml\n";
-    out += "state " + name_of(top) + " {\n";
+    out += std::format("state {} {{\n", name_of(top));
     if (auto const* row = state_row<Table>(top); row != nullptr && row->hasInitial)
     {
-        out += "  [*] --> " + name_of(row->initial) + "\n";
+        out += std::format("  [*] --> {}\n", name_of(row->initial));
     }
     // The State tree first: Top's children, each as a nested block.
     for (std::size_t i = 0; i < Table.stateCount; ++i)
@@ -77,11 +78,11 @@ inline std::string to_plantuml()
         std::string const label = transition_label(tr, actions[i], guards[i]);
         if (tr.internal)
         {
-            out += "  " + name_of(tr.source) + " : " + label + "\n";
+            out += std::format("  {} : {}\n", name_of(tr.source), label);
         }
         else
         {
-            out += "  " + name_of(tr.source) + " --> " + name_of(tr.target) + " : " + label + "\n";
+            out += std::format("  {} --> {} : {}\n", name_of(tr.source), name_of(tr.target), label);
         }
     }
     out += "}\n";

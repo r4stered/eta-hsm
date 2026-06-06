@@ -14,6 +14,7 @@
 // below -- is a `log(std::string_view)` member that receives one finished line at
 // a time.
 
+#include <format>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -47,7 +48,7 @@ public:
     {
         if (logger_ != nullptr && verbosity_ >= 2)
         {
-            logger_->log(name_ + " HSM entering state " + nameOf(state));
+            logger_->log(std::format("{} HSM entering state {}", name_, nameOf(state)));
         }
     }
 
@@ -55,7 +56,7 @@ public:
     {
         if (logger_ != nullptr && verbosity_ >= 2)
         {
-            logger_->log(name_ + " HSM exiting state " + nameOf(state));
+            logger_->log(std::format("{} HSM exiting state {}", name_, nameOf(state)));
         }
     }
 
@@ -63,7 +64,7 @@ public:
     {
         if (logger_ != nullptr && verbosity_ >= 3)
         {
-            logger_->log(name_ + " HSM initializing state " + nameOf(state));
+            logger_->log(std::format("{} HSM initializing state {}", name_, nameOf(state)));
         }
     }
 
@@ -71,8 +72,8 @@ public:
     {
         if (logger_ != nullptr && verbosity_ >= 1)
         {
-            logger_->log(name_ + " HSM transitioning from " + nameOf(from) + " to " + nameOf(to) + " due to " +
-                         nameOf(event));
+            logger_->log(std::format("{} HSM transitioning from {} to {} due to {}", name_, nameOf(from), nameOf(to),
+                                     nameOf(event)));
         }
     }
 

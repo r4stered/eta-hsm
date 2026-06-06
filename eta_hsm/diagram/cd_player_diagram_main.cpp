@@ -9,7 +9,7 @@
 // to_plantuml<table>() / to_mermaid<table>() from a main like this one.
 
 #include <cstring>
-#include <iostream>
+#include <print>
 
 #include "eta_hsm/diagram/mermaid.hpp"
 #include "eta_hsm/diagram/plantuml.hpp"
@@ -20,6 +20,6 @@ int main(int argc, char** argv)
     using eta_hsm::examples::cd_player::player;
 
     bool const mermaid = argc > 1 && std::strcmp(argv[1], "--mermaid") == 0;
-    std::cout << (mermaid ? eta_hsm::diagram::to_mermaid<player>() : eta_hsm::diagram::to_plantuml<player>());
+    std::print("{}", mermaid ? eta_hsm::diagram::to_mermaid<player>() : eta_hsm::diagram::to_plantuml<player>());
     return 0;
 }

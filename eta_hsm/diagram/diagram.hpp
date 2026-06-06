@@ -16,6 +16,7 @@
 
 #include <array>
 #include <cstddef>
+#include <format>
 #include <meta>
 #include <string>
 #include <string_view>
@@ -172,11 +173,11 @@ inline std::string transition_label(TransitionRowT const& tr, std::string_view a
     std::string label = name_of(tr.event);
     if (!guard.empty())
     {
-        label += " [" + std::string{guard} + "]";
+        label += std::format(" [{}]", guard);
     }
     if (!action.empty())
     {
-        label += " / " + std::string{action};
+        label += std::format(" / {}", action);
     }
     if (tr.local)
     {

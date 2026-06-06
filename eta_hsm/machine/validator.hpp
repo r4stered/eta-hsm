@@ -55,6 +55,11 @@ namespace detail {
 // A small fixed-capacity text accumulator the checks build their offender-naming
 // message into. Truncates silently if a message would exceed the buffer (the
 // report's buffer is sized to hold any message the checks produce).
+//
+// The message is assembled by hand here rather than with std::format because the
+// checks run in a consteval validation path: std::format is not usable in a
+// constant expression, so the offender name is appended char-by-char into a
+// fixed std::array instead.
 struct MsgBuf {
     std::array<char, 192> text{};
     std::size_t len{0};
