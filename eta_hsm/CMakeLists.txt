@@ -36,15 +36,17 @@ target_compile_features(eta_hsm INTERFACE cxx_std_26)
 # downstream consumers for the same reason.
 #
 # The enforcement SEMANTIC is a separate runtime policy: enforce (a violation
-# aborts) for every build except Release, which uses ignore (checks compiled out,
-# no overhead). It is scoped to this build tree so a downstream consumer picks its
-# own semantic rather than inheriting ours.
+# aborts) in every configuration, including Release. A violation aborts cleanly
+# rather than proceeding into undefined behavior, and the check costs nothing that
+# matters -- the optimizer eliminates the predicates it can prove and the rest are
+# below the noise floor. It is scoped to this build tree so a downstream consumer
+# picks its own semantic rather than inheriting ours.
 target_compile_options(
     eta_hsm
     INTERFACE
         "$<$<CXX_COMPILER_ID:GNU>:-freflection>"
         "$<$<CXX_COMPILER_ID:GNU>:-fcontracts>"
-        "$<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:GNU>:-fcontract-evaluation-semantic=$<IF:$<CONFIG:Release>,ignore,enforce>>>"
+        "$<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:GNU>:-fcontract-evaluation-semantic=enforce>>"
 )
 # A checked contract emits a reference to the violation handler that lives in the
 # experimental runtime (libstdc++exp). Passing -fcontracts on the link line lets

@@ -8,10 +8,10 @@ build --cxxopt=-freflection
 # archive resolves).
 build --cxxopt=-fcontracts
 build --linkopt=-lstdc++exp
-# Enforcement semantic: a violation aborts by default, in every mode including a
-# bare `-c opt`. Dropping the checks is an explicit opt-in via --config=release,
-# which also sets -c opt; the last -fcontract-evaluation-semantic on the line wins,
-# so the release config flips enforce to ignore.
+# Enforcement semantic: a violation aborts in every mode, including the optimized
+# --config=release build. A violation aborts cleanly rather than proceeding into
+# undefined behavior, and the check costs nothing that matters -- the optimizer
+# eliminates the predicates it can prove and the rest are below the noise floor.
+# --config=release just sets -c opt; it does not relax the semantic.
 build --cxxopt=-fcontract-evaluation-semantic=enforce
 build:release --compilation_mode=opt
-build:release --cxxopt=-fcontract-evaluation-semantic=ignore

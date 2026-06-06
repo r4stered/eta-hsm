@@ -87,6 +87,15 @@ These structural claims are **enforced by tests**
 > hardware-dependent and ages badly; the structural guarantees above are durable
 > and verifiable. Adding a benchmark later is cheap if a consumer needs one.
 
+The runtime **contracts** — the `pre`/`contract_assert` preconditions on
+`top()` and `dispatch` — are checked in **every** build, including Release: a
+violation aborts cleanly instead of proceeding into undefined behavior. This is
+free where it counts — the optimizer eliminates any predicate it can prove, and
+against the `constexpr` table it can prove both, so the enforcing and
+non-checking machine code come out byte-identical; an unoptimized build keeps the
+check but its cost sits below measurement noise. There is no safety-vs-speed dial
+to set per build.
+
 ### Compile-time scaling
 
 Reflection (P2996) and expansion statements (P1306) are compile-time-heavy, so
