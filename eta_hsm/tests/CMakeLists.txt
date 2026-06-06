@@ -37,6 +37,13 @@ add_executable(nested_test nested_test.cpp)
 target_link_libraries(nested_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 gtest_discover_tests(nested_test)
 
+add_executable(example_control_test example_control_test.cpp)
+target_link_libraries(
+    example_control_test
+    PRIVATE EtaHsm::eta_hsm GTest::gtest_main
+)
+gtest_discover_tests(example_control_test)
+
 add_executable(diagram_test diagram_test.cpp)
 target_link_libraries(diagram_test PRIVATE EtaHsm::eta_hsm GTest::gtest_main)
 # The repo root lets the README-sync test find README.md (it is skipped when this
