@@ -304,4 +304,51 @@ inline TableView<ProbeState, ProbeEvent, ProbeHost> recipeToView(const RandomRec
     return view;
 }
 
+// True if two TableViews describe the same machine, row for row: identical State
+// rows (parent, isTop, and -- where Composite -- Initial Substate) and identical
+// Transition rows (source, event, target, dispatch variant), in the same order.
+// The comparison is order-sensitive because the builder preserves the recipe's
+// declaration order; Initial Substate is compared only where hasInitial, since a
+// non-Composite State's initial slot is an unused default. Guards/Actions are not
+// compared (the probe Host has none). This lets a table built one way (e.g. the
+// emitted source's spelled-out builder chain) be checked against the recipe's
+// reference materialization without re-deriving the comparison at each call site.
+template <class S, class E, class H>
+bool sameMachine(const TableView<S, E, H>& a, const TableView<S, E, H>& b)
+{
+    if (a.states.size() != b.states.size())
+    {
+        return false;
+    }
+    for (std::size_t i = 0; i < a.states.size(); ++i)
+    {
+        auto const& x = a.states[i];
+        auto const& y = b.states[i];
+        if (x.state != y.state || x.parent != y.parent || x.isTop != y.isTop || x.hasInitial != y.hasInitial)
+        {
+            return false;
+        }
+        if (x.hasInitial && x.initial != y.initial)
+        {
+            return false;
+        }
+    }
+
+    if (a.transitions.size() != b.transitions.size())
+    {
+        return false;
+    }
+    for (std::size_t i = 0; i < a.transitions.size(); ++i)
+    {
+        auto const& x = a.transitions[i];
+        auto const& y = b.transitions[i];
+        if (x.source != y.source || x.event != y.event || x.target != y.target || x.internal != y.internal ||
+            x.local != y.local)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 }  // namespace eta_hsm::reference
