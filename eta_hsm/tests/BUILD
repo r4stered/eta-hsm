@@ -82,6 +82,15 @@ eta_cc_test(
 )
 
 eta_cc_test(
+    name = "random_codegen_test",
+    srcs = ["random_codegen_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+eta_cc_test(
     name = "example_control_test",
     srcs = ["example_control_test.cpp"],
     deps = [

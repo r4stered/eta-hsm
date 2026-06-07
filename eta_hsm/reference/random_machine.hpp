@@ -86,7 +86,10 @@ struct Prng {
 // is always a single-rooted tree (no cycles, no forest). Every Composite node
 // takes its first child as Initial Substate, so the machine drills to a Leaf.
 // `stateCount` is clamped to [2, capacity of ProbeState].
-inline RandomRecipe makeRecipe(std::uint64_t seed, std::size_t stateCount)
+//
+// constexpr so the same recipe can be re-derived inside constant evaluation, where
+// it materializes into a compile-time production `Hsm` table (random_codegen.hpp).
+constexpr RandomRecipe makeRecipe(std::uint64_t seed, std::size_t stateCount)
 {
     constexpr std::size_t cap = eta_hsm::enum_values<ProbeState>().size();
     if (stateCount < 2)
