@@ -46,7 +46,7 @@ jobs:
     container: ubuntu:26.04
     timeout-minutes: 180
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install toolchain
         # The loop only needs the compiler; jq + curl are for filing the issue.
         run: |
@@ -75,7 +75,7 @@ jobs:
         run: bash tools/codegen_fuzz.sh 2>&1 | tee /tmp/fuzz.log
       - name: Upload the fuzz log on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: fuzz-log-${{ matrix.runner }}
           path: /tmp/fuzz.log
