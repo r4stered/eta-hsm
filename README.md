@@ -363,18 +363,17 @@ A Docker image pins this toolchain for local builds:
 
 ```bash
 ./docker_build                                    # build the image
-# configure, build, and test via the CMake presets (run from the source dir):
-./docker_build bash -c 'cd eta_hsm && cmake --preset default && cmake --build --preset default && ctest --preset default'
+# configure, build, and test via the CMake presets (run from the repo root):
+./docker_build bash -c 'cmake --preset default && cmake --build --preset default && ctest --preset default'
 ./docker_build bazel test //...                   # or via Bazel
 ```
 
 ## Build (CMake)
 
-The presets live in [`eta_hsm/CMakePresets.json`](eta_hsm/CMakePresets.json) and
-write to a `build/` directory at the repo root:
+The presets live in [`CMakePresets.json`](CMakePresets.json) and write to a
+`build/` directory at the repo root:
 
 ```bash
-cd eta_hsm
 cmake --preset default          # configure
 cmake --build --preset default  # build
 ctest --preset default          # test
@@ -382,10 +381,10 @@ ctest --preset default          # test
 
 A `sanitizer` preset builds the suite under ASan + UBSan (`cmake --preset sanitizer`).
 
-eta_hsm installs as a header-only package with a `find_package` export:
+eta_hsm consumes cleanly two ways. Either install it and `find_package`:
 
 ```bash
-cmake --install ../build --prefix /your/prefix
+cmake --install build --prefix /your/prefix
 ```
 
 ```cmake
@@ -393,8 +392,26 @@ find_package(EtaHsm REQUIRED)
 target_link_libraries(your_target PRIVATE EtaHsm::eta_hsm)
 ```
 
-The imported target propagates C++26 and `-freflection`, so consumers don't
-set them by hand. A minimal consumer lives in [`tests/consumer`](tests/consumer).
+or pull it straight into your build with `FetchContent` — the repo root is the
+CMake root, so no `SOURCE_SUBDIR` workaround is needed and only the interface
+target is brought in (no tests, no GoogleTest, no tools):
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+  EtaHsm
+  GIT_REPOSITORY https://github.com/r4stered/eta-hsm.git
+  GIT_TAG v2
+)
+FetchContent_MakeAvailable(EtaHsm)
+target_link_libraries(your_target PRIVATE EtaHsm::eta_hsm)
+```
+
+Either way the imported target propagates C++26 and `-freflection`, so consumers
+don't set them by hand. Minimal consumers for both paths live in
+[`tests/consumer`](tests/consumer) (find_package) and
+[`tests/consumer-fetchcontent`](tests/consumer-fetchcontent) (FetchContent); each
+builds a real `Machine<>` over the installed `machine/` headers.
 
 ## Enum reflection
 

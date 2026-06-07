@@ -28,8 +28,8 @@ readonly REPORT_DIR="${BUILD_DIR}/report"
 readonly GCOV="${GCOV:-gcov-16}"
 
 # Configure -> build -> run. `cmake --preset` resolves CMakePresets.json from the
-# eta_hsm source dir; the preset roots the build under build/coverage/.
-cd "${REPO_ROOT}/eta_hsm"
+# repo root; the preset roots the build under build/coverage/.
+cd "${REPO_ROOT}"
 cmake --preset coverage
 cmake --build --preset coverage
 ctest --preset coverage

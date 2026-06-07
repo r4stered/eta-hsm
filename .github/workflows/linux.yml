@@ -27,7 +27,7 @@ jobs:
       - name: Install gersemi
         run: pip install gersemi==0.27.7
       - name: Check CMake formatting
-        run: gersemi --check eta_hsm tests/consumer
+        run: gersemi --check CMakeLists.txt eta_hsm tests
 
   # GCC 16 / C++26 reflection toolchain (ADR-0001). Runs inside an ubuntu:26.04
   # container because that is the first image shipping g++-16.
@@ -45,18 +45,28 @@ jobs:
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
       - name: Build and test (CMake)
-        working-directory: eta_hsm
         run: |
           cmake --preset default
           cmake --build --preset default
           ctest --preset default
       - name: find_package(EtaHsm) consumer
-        # All scratch nested under build/ (git-ignored) so nothing leaks into the tree.
+        # Builds a real Machine<> over the machine/ headers, so a regression in the
+        # install header set fails here. All scratch nested under build/
+        # (git-ignored) so nothing leaks into the tree.
         run: |
           cmake --install build --prefix "$PWD/build/install"
           cmake -S tests/consumer -B build/consumer -G Ninja -DCMAKE_PREFIX_PATH="$PWD/build/install"
           cmake --build build/consumer
           ./build/consumer/consumer
+      - name: FetchContent(EtaHsm) consumer
+        # The default FetchContent path (no SOURCE_SUBDIR). The project's CMake
+        # asserts at configure time that no developer-only target (the tool,
+        # GoogleTest) leaked into the subdirectory build, then builds the same
+        # real-Machine<> consumer.
+        run: |
+          cmake -S tests/consumer-fetchcontent -B build/consumer-fc -G Ninja
+          cmake --build build/consumer-fc
+          ./build/consumer-fc/consumer
 
   # Same GCC 16 / C++26 container as cmake_tests (ADR-0001 — no native multi-OS),
   # but the GTest suite is built with -fsanitize=address,undefined to catch
@@ -76,7 +86,6 @@ jobs:
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
       - name: Build and test under ASan + UBSan
-        working-directory: eta_hsm
         run: |
           cmake --preset sanitizer
           cmake --build --preset sanitizer

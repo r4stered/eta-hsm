@@ -42,7 +42,7 @@ cd "${ROOT}"
 
 if [[ "${FIX}" -eq 1 ]]; then
   echo "==> cmake_format  (gersemi, in place)"
-  "${BIN}/gersemi" --in-place eta_hsm tests/consumer
+  "${BIN}/gersemi" --in-place CMakeLists.txt eta_hsm tests
 
   echo "==> cpp_linting   (clang-format 21, in place)"
   find eta_hsm \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
@@ -51,7 +51,7 @@ if [[ "${FIX}" -eq 1 ]]; then
   echo "==> all files reformatted"
 else
   echo "==> cmake_format  (gersemi)"
-  "${BIN}/gersemi" --check eta_hsm tests/consumer
+  "${BIN}/gersemi" --check CMakeLists.txt eta_hsm tests
 
   echo "==> cpp_linting   (clang-format 21)"
   find eta_hsm \( -name '*.hpp' -o -name '*.cpp' \) -print0 \

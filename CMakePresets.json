@@ -11,7 +11,7 @@
       "displayName": "Default (Ninja)",
       "description": "GCC 16 / C++26 build into the repo-root build/ directory.",
       "generator": "Ninja",
-      "binaryDir": "${sourceParentDir}/build"
+      "binaryDir": "${sourceDir}/build"
     },
     {
       "name": "sanitizer",
@@ -29,7 +29,7 @@
       "displayName": "gcov coverage",
       "description": "Debug build under GCC's --coverage instrumentation; tools/coverage.sh reduces the .gcda/.gcno into a line-coverage %.",
       "inherits": "default",
-      "binaryDir": "${sourceParentDir}/build/coverage",
+      "binaryDir": "${sourceDir}/build/coverage",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_CXX_FLAGS": "--coverage -g -O0",
