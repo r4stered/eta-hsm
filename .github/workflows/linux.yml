@@ -79,8 +79,14 @@ jobs:
   # but the GTest suite is built with -fsanitize=address,undefined to catch
   # out-of-bounds on the fixed-capacity table storage and UB in the dispatch /
   # LCA exit-entry chain. -fno-sanitize-recover=all makes any finding fail the run.
+  # Matrixed across both arches like cmake_tests, so an arch-specific UB or
+  # out-of-bounds is caught wherever it manifests.
   sanitizers:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     container: ubuntu:26.04
     timeout-minutes: 30
     steps:
@@ -101,9 +107,15 @@ jobs:
   # Same GCC 16 / C++26 container as cmake_tests (ADR-0001). Builds the GTest
   # suite under GCC's --coverage instrumentation and reduces the .gcda/.gcno with
   # gcovr into a line-coverage %. CMake path only, mirroring the sanitizers job;
-  # `bazel coverage` is out of scope.
+  # `bazel coverage` is out of scope. Matrixed across both arches so a coverage
+  # build that breaks on one arch is caught; the % is line coverage of the source
+  # and so arch-independent, so only the x86_64 leg publishes the badge.
   coverage:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     container: ubuntu:26.04
     timeout-minutes: 30
     steps:
@@ -129,9 +141,10 @@ jobs:
             echo '```'
           } >>"$GITHUB_STEP_SUMMARY"
       - name: Upload coverage report
+        # Per-arch artifact name so the two matrix legs do not collide on upload.
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ matrix.runner }}
           path: build/coverage/report/
       - name: Extract coverage percentage
         id: cov
@@ -163,7 +176,9 @@ jobs:
       #   3. Set the gist id as the repo variable GIST_ID, and put it in the badge
       #      URL in README.md.
       - name: Update coverage badge gist
-        if: github.event_name == 'push' && github.ref == 'refs/heads/v2'
+        # Single-writer: only the x86_64 leg publishes, so the two arch legs never
+        # race or double-write the gist. The % is arch-independent.
+        if: matrix.runner == 'ubuntu-latest' && github.event_name == 'push' && github.ref == 'refs/heads/v2'
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
@@ -180,6 +195,10 @@ jobs:
   # forks have no access to the gist secret. The CI file rides the GIST_ID/GIST_SECRET
   # set up for coverage above; no extra setup beyond adding eta-hsm-ci.json to the URL
   # in README.md.
+  #
+  # Itself un-matrixed, so the badge is written exactly once. A `needs` on a
+  # matrixed job aggregates all of its arch legs into one result, so a failure on
+  # either arch flips the badge to failing -- both arches must pass for `passing`.
   ci_status:
     runs-on: ubuntu-latest
     needs: [cpp_linting, cmake_format, cmake_tests, sanitizers, coverage, bazel_tests]
@@ -207,8 +226,18 @@ jobs:
           message: ${{ steps.status.outputs.message }}
           color: ${{ steps.status.outputs.color }}
 
+  # Same GCC 16 / C++26 container, matrixed across both arches. The bazelisk
+  # release is arch-specific, so each leg downloads the binary matching its runner.
   bazel_tests:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            bazelisk_arch: amd64
+          - runner: ubuntu-24.04-arm
+            bazelisk_arch: arm64
+    runs-on: ${{ matrix.runner }}
     container: ubuntu:26.04
     timeout-minutes: 30
     env:
@@ -224,7 +253,7 @@ jobs:
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-16
           curl -fsSL -o /usr/local/bin/bazel \
-            https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64
+            https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-${{ matrix.bazelisk_arch }}
           chmod +x /usr/local/bin/bazel
       - name: Test (Bazel)
         run: bazel test //... --test_output=errors
