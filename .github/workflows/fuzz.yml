@@ -1,0 +1,144 @@
+name: Fuzz
+
+# Scheduled, rotating codegen fuzzing. The in-tree GTest harnesses
+# (random_machine, random_codegen, random_walk) already run on every push via the
+# Linux_CI suite; they are deterministic, fixed-seed regression gates bounded by a
+# single TU's compile budget. This workflow drives tools/codegen_fuzz.sh instead:
+# the csmith-style build loop that emits each random machine as its own translation
+# unit, so it can fuzz a far larger -- and each-run fresh -- seed range past what one
+# TU can hold. A green run is non-vacuous (the loop self-tests its faithfulness check
+# against a planted valid-but-wrong machine); a failure files a CI issue on the fork
+# carrying the exact seed, which reproduces the machine on its own.
+on:
+  schedule:
+    - cron: '0 7 * * *' # nightly 07:00 UTC; scheduled runs fire from the default branch
+  workflow_dispatch:
+    inputs:
+      count:
+        description: machines to fuzz this run (FUZZ_COUNT)
+        default: '256'
+      seed_start:
+        description: starting seed; blank = rotate by run number for a fresh window
+        default: ''
+      nmin:
+        description: minimum states per machine (FUZZ_NMIN)
+        default: '2'
+      nmax:
+        description: maximum states per machine (FUZZ_NMAX)
+        default: '24'
+
+# The failure path files an issue on this repo (the fork); nothing else needs write.
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  # GCC 16 / C++26 reflection toolchain (ADR-0001), same ubuntu:26.04 container as
+  # Linux_CI. Matrixed across both arches: the loop diffs reflection codegen output
+  # against the reference, so an arch-specific codegen bug is caught wherever it
+  # manifests. Each leg that fails files its own arch-tagged issue.
+  codegen_fuzz:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    container: ubuntu:26.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        # The loop only needs the compiler; jq + curl are for filing the issue.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            g++-16 gcc-16 binutils git ca-certificates jq curl
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-16
+      - name: Pick a fresh seed window
+        id: seed
+        # Rotate FUZZ_SEED_START to a window disjoint from every prior scheduled run
+        # (run_number is monotonic per workflow), so coverage accumulates instead of
+        # re-testing the same seeds. A manual dispatch may pin an explicit seed_start.
+        run: |
+          count="${{ github.event.inputs.count || '256' }}"
+          start="${{ github.event.inputs.seed_start }}"
+          [ -z "$start" ] && start=$(( ${{ github.run_number }} * count ))
+          echo "start=$start" >>"$GITHUB_OUTPUT"
+          echo "count=$count" >>"$GITHUB_OUTPUT"
+      - name: Fuzz production codegen vs the reference
+        env:
+          FUZZ_SEED_START: ${{ steps.seed.outputs.start }}
+          FUZZ_COUNT: ${{ steps.seed.outputs.count }}
+          FUZZ_NMIN: ${{ github.event.inputs.nmin || '2' }}
+          FUZZ_NMAX: ${{ github.event.inputs.nmax || '24' }}
+        run: bash tools/codegen_fuzz.sh 2>&1 | tee /tmp/fuzz.log
+      - name: Upload the fuzz log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-log-${{ matrix.runner }}
+          path: /tmp/fuzz.log
+      - name: File an issue on failure
+        if: failure()
+        # A CI-bot report, deliberately plain: the failing seed reproduces the exact
+        # machine, so the issue just needs the seed, the rotated window, the repro
+        # command, and a link back to the run.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          API: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ARCH: ${{ matrix.runner }}
+          SEED_START: ${{ steps.seed.outputs.start }}
+          COUNT: ${{ steps.seed.outputs.count }}
+          FUZZ_NMIN: ${{ github.event.inputs.nmin || '2' }}
+          FUZZ_NMAX: ${{ github.event.inputs.nmax || '24' }}
+        run: |
+          set -euo pipefail
+
+          # The loop aborts on the first failure (set -e), so there is exactly one
+          # failing machine; lift its seed/states out of the FAIL line it printed.
+          fail_line="$(grep -oE 'FAIL: machine seed=[0-9]+ states=[0-9]+' /tmp/fuzz.log | head -1 || true)"
+          seed="$(printf '%s' "$fail_line" | sed -nE 's/.*seed=([0-9]+).*/\1/p')"
+          states="$(printf '%s' "$fail_line" | sed -nE 's/.*states=([0-9]+).*/\1/p')"
+          if [ -n "$seed" ]; then
+            title="Fuzz failure: codegen diverges on seed ${seed} (states ${states}, ${ARCH})"
+          else
+            # No FAIL line means the run died before/around the loop (e.g. the
+            # self-test or a toolchain break); file under the window instead.
+            title="Fuzz failure: codegen_fuzz failed on ${ARCH} (window ${SEED_START}+${COUNT})"
+          fi
+
+          # Dedup: don't re-file if an open issue with this exact title is already up.
+          existing="$(curl -fsS \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${API}/repos/${REPO}/issues?state=open&labels=fuzz&per_page=100" \
+            | jq -r --arg t "$title" 'map(select(.title == $t)) | length')"
+          if [ "${existing:-0}" -gt 0 ]; then
+            echo "An open issue titled \"$title\" already exists; not filing a duplicate."
+            exit 0
+          fi
+
+          # Pin NMIN=NMAX=states so the seed reproduces the same N (the loop derives
+          # N = NMIN + seed % span); falls back to the run's bounds if unparsed.
+          repro="FUZZ_SEED_START=${seed:-$SEED_START} FUZZ_COUNT=1 FUZZ_NMIN=${states:-$FUZZ_NMIN} FUZZ_NMAX=${states:-$FUZZ_NMAX} ./docker_build bash tools/codegen_fuzz.sh"
+          {
+            printf 'The scheduled codegen fuzz loop failed on `%s`.\n\n' "$ARCH"
+            printf -- '- **Seed:** %s  **States:** %s\n' "${seed:-unknown}" "${states:-unknown}"
+            printf -- '- **Seed window this run:** `FUZZ_SEED_START=%s`, `FUZZ_COUNT=%s`\n' "$SEED_START" "$COUNT"
+            printf -- '- **CI run:** %s\n\n' "$RUN_URL"
+            printf '### Reproduce locally (GCC-16 toolchain)\n```bash\n%s\n```\n\n' "$repro"
+            printf '### Failure tail\n```\n'
+            tail -n 40 /tmp/fuzz.log
+            printf '\n```\n'
+          } >/tmp/body.md
+
+          jq -n --arg t "$title" --rawfile b /tmp/body.md \
+            '{title: $t, body: $b, labels: ["fuzz", "ci"]}' \
+          | curl -fsS -X POST \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${API}/repos/${REPO}/issues" -d @- \
+          | jq -r '"Filed: " + .html_url'
