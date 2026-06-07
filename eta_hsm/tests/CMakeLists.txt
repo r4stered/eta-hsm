@@ -46,6 +46,7 @@ eta_add_test(compile_time_backbone)
 # set; in the sanitizer config it follows the global flag and wins.
 target_compile_options(compile_time_backbone_test PRIVATE -fno-sanitize=all)
 eta_add_test(random_walk)
+eta_add_test(random_machine)
 eta_add_test(example_control)
 eta_add_test(during)
 eta_add_test(auto_logged_machine)
