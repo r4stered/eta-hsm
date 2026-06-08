@@ -12,6 +12,8 @@ A C++ library for defining and running **hierarchical state machines** (HSMs).
 
 ## At a glance
 
+[Compiler Explorer Demo](https://godbolt.org/z/MeT87Eq5a)
+
 A whole machine is one `constexpr` table: States with their parent, the Top
 State's Initial Substate, and flat `(Source, Event, Target [, Action])` rows.
 There are no handler `switch` bodies and no per-State classes — the topology is
