@@ -57,6 +57,7 @@ eta_add_test(time_tracker)
 eta_add_test(validator)
 eta_add_test(builder_deduction)
 eta_add_test(scaling_probe)
+eta_add_test(shape_source)
 eta_add_test(footprint)
 eta_add_test(v1_parity)
 
@@ -254,5 +255,18 @@ eta_add_negcompile_test_src(
 add_test(
     NAME codegen_gate
     COMMAND bash "${_eta_repo_root}/tools/codegen_gate.sh"
+    WORKING_DIRECTORY "${_eta_repo_root}"
+)
+
+# ----------------------------------------------------------------------------
+# Capacity-override gate. Compiles eta_hsm/tests/cap_override.cpp under several
+# -DETA_HSM_MAX_STATES settings and proves the cap knob raises the State ceiling
+# (a machine past the default 64 compiles only under a raised cap) and that the
+# capacity diagnostic interpolates the live limit. A pure ctest case driving the
+# compiler itself, so it runs wherever the GCC-16 toolchain lives.
+# ----------------------------------------------------------------------------
+add_test(
+    NAME cap_override
+    COMMAND bash "${_eta_repo_root}/tools/cap_override.sh"
     WORKING_DIRECTORY "${_eta_repo_root}"
 )

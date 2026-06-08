@@ -20,8 +20,22 @@ namespace eta_hsm {
 
 // Fixed capacities for the builder's constexpr storage. Generously sized;
 // the final table only ever exposes the populated prefix via its counts.
-inline constexpr std::size_t kMaxStates = 64;
-inline constexpr std::size_t kMaxTransitions = 256;
+//
+// Each capacity defaults to a value that fits every machine in the tree, but is
+// overridable per translation unit with a `-D` on the command line
+// (`-DETA_HSM_MAX_STATES=…` / `-DETA_HSM_MAX_TRANSITIONS=…`) so a consumer with a
+// larger machine can raise the ceiling without editing this header. With no
+// override the defaults stand and the table storage is byte-identical to the
+// fixed-capacity form.
+#ifndef ETA_HSM_MAX_STATES
+#define ETA_HSM_MAX_STATES 64
+#endif
+#ifndef ETA_HSM_MAX_TRANSITIONS
+#define ETA_HSM_MAX_TRANSITIONS 256
+#endif
+
+inline constexpr std::size_t kMaxStates = ETA_HSM_MAX_STATES;
+inline constexpr std::size_t kMaxTransitions = ETA_HSM_MAX_TRANSITIONS;
 
 // One row of the State tree: a State, its parent, and (if Composite) the Initial
 // Substate the machine forwards into when the State is entered.

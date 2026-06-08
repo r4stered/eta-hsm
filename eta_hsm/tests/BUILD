@@ -187,6 +187,15 @@ eta_cc_test(
 )
 
 eta_cc_test(
+    name = "shape_source_test",
+    srcs = ["shape_source_test.cpp"],
+    deps = [
+        "//eta_hsm:eta_hsm",
+        "@googletest//:gtest_main",
+    ],
+)
+
+eta_cc_test(
     name = "footprint_test",
     srcs = ["footprint_test.cpp"],
     deps = [

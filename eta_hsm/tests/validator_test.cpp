@@ -241,5 +241,35 @@ TEST(Validator, OverStateCapacityRejected)
     EXPECT_EQ(report.error, ValidationError::TooManyStates);
 }
 
+// The capacity diagnostic interpolates the *live* limit, so the message stays
+// truthful at any cap rather than embedding a literal that would drift when the
+// cap is overridden. The default cap is 64, so the over-States message names 64.
+TEST(Validator, TooManyStatesMessageNamesLiveCap)
+{
+    constexpr auto report = validate<over_capacity_states>();
+    std::string_view const msg{report.data(), report.size()};
+    EXPECT_NE(msg.find("limit 64"), std::string_view::npos) << "message was: " << msg;
+}
+
+// Over-capacity Transitions: a tiny valid state set plus kMaxTransitions + 1 .on
+// rows pushes transitionCount one past the limit, and the diagnostic names the
+// live Transition cap (256 by default).
+inline constexpr auto over_capacity_transitions = [] {
+    auto t = Hsm<H, S, E>{}.initial(S::Top, S::A).state(S::A, S::Top).unwired(S::B).unwired(S::C);
+    for (std::size_t i = 0; i <= kMaxTransitions; ++i)
+    {
+        t = t.on(S::A, E::Go, S::A);
+    }
+    return t;  // transitionCount == kMaxTransitions + 1
+}();
+TEST(Validator, TooManyTransitionsMessageNamesLiveCap)
+{
+    static_assert(over_capacity_transitions.transitionCount == kMaxTransitions + 1);
+    constexpr auto report = validate<over_capacity_transitions>();
+    EXPECT_EQ(report.error, ValidationError::TooManyTransitions);
+    std::string_view const msg{report.data(), report.size()};
+    EXPECT_NE(msg.find("limit 256"), std::string_view::npos) << "message was: " << msg;
+}
+
 }  // namespace
 }  // namespace eta_hsm::validator_test

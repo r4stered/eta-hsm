@@ -356,6 +356,46 @@ Growth is sub-quadratic: compile time scales as ≈ N^0.2 over 7 → 45, so a
 7-State one. Re-run
 `./docker_build bash tools/scaling_probe.sh` to refresh the numbers on your host.
 
+### Capacity caps
+
+The builder's table storage has two compile-time capacities — `kMaxStates`
+(default 64) and `kMaxTransitions` (default 256) — generously sized to hold any
+machine in the tree. A consumer with a larger machine raises either ceiling per
+translation unit with a `-D`, without editing the library:
+
+```bash
+g++ -std=c++26 -freflection -DETA_HSM_MAX_STATES=256 -DETA_HSM_MAX_TRANSITIONS=4096 ...
+```
+
+With no override the defaults stand and every machine's table storage, codegen, and
+footprint are byte-identical to the fixed-capacity form. The validator's capacity
+diagnostics interpolate the live limit, so an over-large machine names the cap
+actually in force rather than a stale literal.
+
+### Scaling frontier
+
+How far past the default cap does the design actually reach? A re-runnable sweep
+([`tools/scaling_frontier.sh`](tools/scaling_frontier.sh)) emits machines of five
+shapes as standalone source, doubles the State count (64 → 128 → 256 → …) to
+bracket the first failure, and at each size compiles with the cap raised **and**
+runs the emitted machine through the [differential backbone](#differential-verification)
+— so correctness is verified at scale, not just compilation. Each shape isolates a
+subsystem: a **deep chain** (per-dispatch chain length and path depth), a **wide
+star** (`template for` breadth), a **balanced tree** (the realistic middle), a
+**dense-transition** machine (the validator's O(transitions²) ambiguity scan), and a
+**worst case** stacking all of them.
+
+The frontier is set entirely by that quadratic scan. **Sparse machines — the
+realistic case — have large headroom:** the deep, wide, and balanced shapes compile
+and verify cleanly to N = 512 (the largest swept), where only GCC's *default* soft
+limits would stop a naive user — lifted by cranking `-fconstexpr-ops-limit`, not by
+memory. The dense families wall hard: a near-complete transition graph drives
+compile memory up roughly as N⁴ and exhausts memory by N = 128. Runtime cost stays a
+bounded structural property throughout (max Exit/Entry steps and active-path depth
+track the machine's shape), with no wall-clock figure introduced. The harness
+classifies every cliff by mode (soft-limit wall vs OOM / ICE / timeout) and writes a
+report to `docs/probes/`; re-run it to map the frontier on your host.
+
 ## Toolchain
 
 The single supported toolchain is **GCC 16+** at `-std=c++26 -freflection`

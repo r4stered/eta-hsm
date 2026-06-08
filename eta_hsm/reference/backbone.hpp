@@ -364,10 +364,43 @@ struct BackboneReport {
     std::size_t reachableLeaves{0};
     std::size_t eventCount{0};
     std::size_t pairsVerified{0};  // reachable Leaves x Events == reachableLeaves * eventCount
+
+    // Structural runtime-scaling metrics, as bounded-work properties rather than
+    // wall-clock numbers: the most Exit+Entry steps any single Dispatch ran (the
+    // per-dispatch work, LCA-bounded), and the deepest active root-to-leaf path
+    // observed (the path[] depth a Dispatch walks). Both are functions of the
+    // machine's shape and depth, captured across every verified step.
+    std::size_t maxExitEntrySteps{0};
+    std::size_t maxActivePathDepth{0};
+
     std::vector<std::string> failures;
 
     bool ok() const { return failures.empty(); }
 };
+
+// The depth of `leaf`'s active configuration: the number of States on the
+// root-to-leaf chain (Top counts as 1). Zero if `leaf` is not anchored to Top.
+template <class State, class EventEnum, class Host>
+std::size_t activePathDepth(const TableView<State, EventEnum, Host>& view, State leaf)
+{
+    std::size_t depth = 0;
+    State cur = leaf;
+    for (std::size_t i = 0; i <= view.states.size(); ++i)
+    {
+        const auto* row = view.find(cur);
+        if (row == nullptr)
+        {
+            return 0;
+        }
+        ++depth;
+        if (row->isTop)
+        {
+            return depth;
+        }
+        cur = row->parent;
+    }
+    return 0;  // ran past the State count without reaching Top
+}
 
 // Run the exhaustive backbone over `Table`. For every reachable (State, Event):
 // drive a live Machine to the State by replaying a reference-computed path, gather
@@ -406,6 +439,16 @@ BackboneReport runBackbone(const typename decltype(Table)::HostType& guardHost =
             for (auto& fail : invariantFailures(view, obs, budget))
             {
                 rep.failures.push_back(std::move(fail));
+            }
+            std::size_t const steps = obs.prodExits.size() + obs.prodEntries.size();
+            if (steps > rep.maxExitEntrySteps)
+            {
+                rep.maxExitEntrySteps = steps;
+            }
+            std::size_t const depth = activePathDepth(view, obs.prodLeaf);
+            if (depth > rep.maxActivePathDepth)
+            {
+                rep.maxActivePathDepth = depth;
             }
             ++rep.pairsVerified;
         }

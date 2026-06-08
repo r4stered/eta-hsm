@@ -73,6 +73,30 @@ struct MsgBuf {
             }
         }
     }
+    // Append a non-negative integer in decimal, so a diagnostic can interpolate a
+    // live value (e.g. the current capacity) rather than embed a literal that would
+    // drift from the actual limit when the cap is overridden.
+    constexpr void operator+=(std::size_t n)
+    {
+        char digits[20]{};
+        std::size_t d = 0;
+        do
+        {
+            digits[d++] = static_cast<char>('0' + (n % 10));
+            n /= 10;
+        } while (n != 0);
+        while (d > 0)
+        {
+            if (len + 1 < text.size())
+            {
+                text[len++] = digits[--d];
+            }
+            else
+            {
+                --d;
+            }
+        }
+    }
 };
 
 // The enumerator identifier of `v`, or a placeholder if `v` is not a declared
@@ -116,19 +140,25 @@ consteval ValidationReport validate()
     if (Table.stateCount > kMaxStates)
     {
         detail::MsgBuf m;
-        m += "too many States (limit 64); raise kMaxStates";
+        m += "too many States (limit ";
+        m += kMaxStates;
+        m += "); raise ETA_HSM_MAX_STATES";
         return detail::failure(ValidationError::TooManyStates, m);
     }
     if (Table.transitionCount > kMaxTransitions)
     {
         detail::MsgBuf m;
-        m += "too many Transitions (limit 256); raise kMaxTransitions";
+        m += "too many Transitions (limit ";
+        m += kMaxTransitions;
+        m += "); raise ETA_HSM_MAX_TRANSITIONS";
         return detail::failure(ValidationError::TooManyTransitions, m);
     }
     if (Table.unwiredCount > kMaxStates)
     {
         detail::MsgBuf m;
-        m += "too many .unwired States (limit 64); raise kMaxStates";
+        m += "too many .unwired States (limit ";
+        m += kMaxStates;
+        m += "); raise ETA_HSM_MAX_STATES";
         return detail::failure(ValidationError::TooManyUnwired, m);
     }
 
